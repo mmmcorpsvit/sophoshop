@@ -1,4 +1,4 @@
-![](https://api.travis-ci.org/mmmcorpsvit/sophoshop.svg?branch=master)
+[![Build Status](https://travis-ci.org/mmmcorpsvit/sophoshop.svg?branch=master)](https://travis-ci.org/mmmcorpsvit/sophoshop)
 
 ## Welcome to GitHub Pages
 
