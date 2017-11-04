@@ -19,9 +19,6 @@ pysolr == 3.6.0
 pillow==4.3.0
 
 
-enum36; python_version == '3.6'
-
-
 # development
 django-debug-toolbar == 1.8
 
