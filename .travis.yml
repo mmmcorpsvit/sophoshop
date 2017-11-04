@@ -33,5 +33,4 @@ cache:
 
 
 install:
-  - pip install codecov
-
+  - pip install
