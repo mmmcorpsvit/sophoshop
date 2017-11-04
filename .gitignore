@@ -1,3 +1,11 @@
+# mmm
+_private/
+
+# virtualenv
+.venv
+venv/
+ENV/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -81,11 +89,6 @@ celerybeat-schedule
 
 # dotenv
 .env
-
-# virtualenv
-.venv
-venv/
-ENV/
 
 # Spyder project settings
 .spyderproject
