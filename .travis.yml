@@ -6,8 +6,8 @@ matrix:
   include:
     - python: 3.6
 
-env:
-  global:
+#env:
+#  global:
     # $TRANSIFEX_PASSWORD for oscar_bot (used in transifex.sh)
     # - secure: FuIlzEsGJiAwhaIRBmRNsq9eXmuzs25fX6BChknW4lDyVAySWMp0+Zps9Bd0JgfFYUG3Ip+OTmksYIoTUsG25ZJS9cq1IFt3QKUAN70YCI/4ZBLeIdICPEyxq+Km179+NeEXmBUug17RLMLxh3MWfO+RKUHK9yHIPNNpq0dNyoo=
     # These two environment variables could be set by Travis itself, or Travis
@@ -15,18 +15,20 @@ env:
     # environments. In any case if these two values get configured then end
     # users only need to enable the pip cache and manually run pip wheel before
     # running pip install.
-    - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
-    - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+    # - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
+    # - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
 
-before_cache:
-  - rm -rf $HOME/.cache/pip/log
+#before_cache:
+#  - rm -rf $HOME/.cache/pip/log
 
 
-cache:
-  directories:
-    - $HOME/.cache/pip
+#cache:
+#  directories:
+#    - $HOME/.cache/pip
 
 
 install:
-  - pip install .
   - pip install -r requirements.txt
+
+# command to run tests
+script: pytest
