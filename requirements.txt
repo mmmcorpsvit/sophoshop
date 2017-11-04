@@ -1,16 +1,16 @@
 # core
-django==1.11.7
-django-oscar==1.5
+django == 1.11.7
+django-oscar == 1.5
 
-django-extensions==1.9.7
-django-environ=0.4.4
+django-extensions == 1.9.7
+django-environ == 0.4.4
 # database
-psycopg2==2.7.3.2
+psycopg2 == 2.7.3.2
 
 # haystack
-Whoosh==2.7.4
-whitenoise==3.3.1
-pysolr=3.6.0
+Whoosh == 2.7.4
+whitenoise == 3.3.1
+pysolr == 3.6.0
 
 # Please ensure that pillow, a fork of the the Python Imaging Library (PIL), gets installed with JPEG support.
 # Supported formats are printed when pillow is first installed. Instructions on how to get JPEG support are highly
@@ -23,5 +23,5 @@ enum36; python_version == '3.6'
 
 
 # development
-django-debug-toolbar==1.8
+django-debug-toolbar == 1.8
 
