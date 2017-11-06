@@ -5,8 +5,13 @@ import oscar
 env = environ.Env()
 
 # Path helper
-location = lambda x: os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), x)
+# location = lambda x: os.path.join(
+#    os.path.dirname(os.path.realpath(__file__)), x)
+
+
+def location(x):
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), x)
+
 
 DEBUG = env.bool('DEBUG', default=True)
 SQL_DEBUG = DEBUG
@@ -53,30 +58,30 @@ CACHES = {
 # timezone as the operating system.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
-USE_TZ = True
-TIME_ZONE = 'Europe/London'
+USE_TZ = False
+# TIME_ZONE = 'Europe/London'
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 # LANGUAGE_CODE = 'en-gb'
+# LANGUAGE_CODE = 'uk_UA'
 LANGUAGE_CODE = 'uk_UA'
 
 # Includes all languages that have >50% coverage in Transifex
 # Taken from Django's default setting for LANGUAGES
-gettext_noop = lambda s: s
 LANGUAGES = (
-    # ('ua', gettext_noop('Ukrainian')),
-    ('ru', gettext_noop('Russian')),
-    # ('en-gb', gettext_noop('British English')),
-)
+    ('uk_UA', 'Ukrainian'),
+    )
+
 
 SITE_ID = 1
 
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
+# USE_I18N = False
 
 # If you set this to False, Django will not format dates, numbers and
 # calendars according to the current locale

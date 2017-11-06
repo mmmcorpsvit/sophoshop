@@ -37,7 +37,6 @@ class I18nSitemap(Sitemap):
 
 
 class StaticSitemap(I18nSitemap):
-
     def items(self):
         return ['promotions:home', ]
 
@@ -46,13 +45,11 @@ class StaticSitemap(I18nSitemap):
 
 
 class ProductSitemap(I18nSitemap):
-
     def items(self):
         return Product.browsable.all()
 
 
 class CategorySitemap(I18nSitemap):
-
     def items(self):
         return Category.objects.all()
 
