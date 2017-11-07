@@ -3,7 +3,7 @@
   "description": "Heroku test with django-oscar e-shop",
   "image": "heroku/python",
   "repository": "https://github.com/mmmcorpsvit/sophoshop",
-  "keywords": ["python", "django", "django-oscar" ],
+  "keywords": ["python", "django", "django-oscar"],
   "addons": [ "heroku-postgresql" ],
   "environments": {
     "test": {
