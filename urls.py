@@ -14,28 +14,37 @@ from apps.sitemaps import base_sitemaps
 admin.autodiscover()
 
 urlpatterns = [
-    # Include admin as convenience. It's unsupported and only included
-    # for developers.
+    # ********************************
+    url(r'^', application.urls),
+
+    # Include admin as convenience. It's unsupported and only included for developers.
     url(r'^admin/', include(admin.site.urls)),
 
     # i18n URLS need to live outside of i18n_patterns scope of Oscar
-    url(r'^i18n/', include(django.conf.urls.i18n)),
+    # url(r'^i18n/', include(django.conf.urls.i18n)),
 
     # include a basic sitemap
     url(r'^sitemap\.xml$', views.index,
         {'sitemaps': base_sitemaps}),
     url(r'^sitemap-(?P<section>.+)\.xml$', views.sitemap,
         {'sitemaps': base_sitemaps},
-        name='django.contrib.sitemaps.views.sitemap')
+        name='django.contrib.sitemaps.views.sitemap'),
+
+    # ********************************
+    # Custom functionality to allow dashboard users to be created
+    url(r'gateway/', include(gateway_urls)),
 ]
 
 # Prefix Oscar URLs with language codes
+"""
 urlpatterns += i18n_patterns(
     # Custom functionality to allow dashboard users to be created
     url(r'gateway/', include(gateway_urls)),
     # Oscar's normal URLs
     url(r'^', application.urls),
 )
+"""
+
 
 if settings.DEBUG:
     import debug_toolbar

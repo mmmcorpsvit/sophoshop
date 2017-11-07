@@ -17,10 +17,11 @@ DEBUG = env.bool('DEBUG', default=True)
 SQL_DEBUG = DEBUG
 
 ALLOWED_HOSTS = [
-    'latest.oscarcommerce.com',
-    'master.oscarcommerce.com',
+    # 'latest.oscarcommerce.com',
+    # 'master.oscarcommerce.com',
     'localhost',
     '127.0.0.1',
+    # '192.168.1.*',
 ]
 
 # This is needed for the hosted version of the sandbox
@@ -58,7 +59,8 @@ CACHES = {
 # timezone as the operating system.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
-USE_TZ = False
+USE_TZ = True
+TIME_ZONE = 'Europe/Kiev'
 # TIME_ZONE = 'Europe/London'
 
 TEST_RUNNER = 'django.test.runner.DiscoverRunner'
@@ -81,7 +83,6 @@ SITE_ID = 1
 # If you set this to False, Django will make some optimizations so as not
 # to load the internationalization machinery.
 USE_I18N = True
-# USE_I18N = False
 
 # If you set this to False, Django will not format dates, numbers and
 # calendars according to the current locale
@@ -156,9 +157,9 @@ MIDDLEWARE = [
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
 
     # Allow languages to be selected
-    'django.middleware.locale.LocaleMiddleware',
-    'django.middleware.http.ConditionalGetMiddleware',
-    'django.middleware.common.CommonMiddleware',
+    # 'django.middleware.locale.LocaleMiddleware',
+    # 'django.middleware.http.ConditionalGetMiddleware',
+    # 'django.middleware.common.CommonMiddleware',
 
     # Ensure a valid basket is added to the request instance for every request
     'oscar.apps.basket.middleware.BasketMiddleware',
@@ -263,7 +264,11 @@ INSTALLED_APPS = [
 
     # Debug toolbar + extensions
     'debug_toolbar',
+    # ====================
+    # add my apps
+    # ====================
     'apps.gateway',     # For allowing dashboard access
+
     'widget_tweaks',
 ] + oscar.get_core_apps()
 
@@ -292,7 +297,6 @@ APPEND_SLASH = True
 # ====================
 # Messages contrib app
 # ====================
-
 from django.contrib.messages import constants as messages
 MESSAGE_TAGS = {
     messages.ERROR: 'danger'
@@ -317,18 +321,16 @@ HAYSTACK_CONNECTIONS = {
 # =============
 # Debug Toolbar
 # =============
-
 INTERNAL_IPS = ['127.0.0.1', '::1']
 
 # ==============
 # Oscar settings
 # ==============
-
 from oscar.defaults import *
+
 
 # Meta
 # ====
-
 OSCAR_SHOP_TAGLINE = 'Sandbox'
 
 OSCAR_RECENTLY_VIEWED_PRODUCTS = 20
