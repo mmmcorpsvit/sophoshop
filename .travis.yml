@@ -23,13 +23,13 @@ env:
 
     DJANGO_SETTINGS_MODULE=settings
 
-before_cache:
-  - rm -rf $HOME/.cache/pip/log
+#before_cache:
+#  - rm -rf $HOME/.cache/pip/log
 
 
-cache:
-  directories:
-    - $HOME/.cache/pip
+#cache:
+#  directories:
+#    - $HOME/.cache/pip
 
 
 install:
@@ -37,5 +37,5 @@ install:
 
 # command to run tests
 script:
-   ./manage.py test
+   sudo ./manage.py test
   #- pytest
