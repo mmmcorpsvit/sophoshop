@@ -1,5 +1,6 @@
 # mmm
 _private/
+.idea
 
 # virtualenv
 .venv
