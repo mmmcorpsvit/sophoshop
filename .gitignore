@@ -1,6 +1,7 @@
 # mmm
 _private/
 .idea
+whoosh_index/
 
 # virtualenv
 .venv
