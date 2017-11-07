@@ -73,9 +73,7 @@ LANGUAGE_CODE = 'uk_UA'
 
 # Includes all languages that have >50% coverage in Transifex
 # Taken from Django's default setting for LANGUAGES
-LANGUAGES = (
-    ('uk_UA', 'Ukrainian'),
-            )
+LANGUAGES = (('uk_UA', 'Ukrainian'),)
 
 
 SITE_ID = 1
