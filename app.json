@@ -9,7 +9,8 @@
     "test": {
       "scripts": {
         "test-setup": "python manage.py collectstatic --noinput",
-        "test": "python manage.py test"
+        "test": "python manage.py test",
+        "run": "python manage.py runserver https://sophoshop.herokuapp.com/"
       }
     }
   }
