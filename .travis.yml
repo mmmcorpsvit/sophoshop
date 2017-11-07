@@ -37,5 +37,5 @@ install:
 
 # command to run tests
 script:
-  -ls -l
+  ls -l
   #- pytest
