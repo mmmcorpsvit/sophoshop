@@ -23,3 +23,6 @@ pillow==4.3.0
 # development
 django-debug-toolbar == 1.8
 pycodestyle
+
+# need for Heroku
+gunicorn
