@@ -4,10 +4,13 @@ language: python
 matrix:
   fast_finish: true
   include:
-    - python: 3.6
+    - python: 3.6.0
 
-#env:
-#  global:
+git:
+  depth: 3
+
+env:
+  global:
     # $TRANSIFEX_PASSWORD for oscar_bot (used in transifex.sh)
     # - secure: FuIlzEsGJiAwhaIRBmRNsq9eXmuzs25fX6BChknW4lDyVAySWMp0+Zps9Bd0JgfFYUG3Ip+OTmksYIoTUsG25ZJS9cq1IFt3QKUAN70YCI/4ZBLeIdICPEyxq+Km179+NeEXmBUug17RLMLxh3MWfO+RKUHK9yHIPNNpq0dNyoo=
     # These two environment variables could be set by Travis itself, or Travis
@@ -17,6 +20,8 @@ matrix:
     # running pip install.
     # - PIP_WHEEL_DIR=$HOME/.cache/pip/wheels
     # - PIP_FIND_LINKS=file://$HOME/.cache/pip/wheels
+
+    DJANGO_SETTINGS_MODULE=settings
 
 #before_cache:
 #  - rm -rf $HOME/.cache/pip/log
