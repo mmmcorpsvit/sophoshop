@@ -22,5 +22,5 @@ pillow==4.3.0
 
 # development
 django-debug-toolbar == 1.8
-flake8
+pycodestyle
 pep8

@@ -8,4 +8,5 @@ class TestSettings(TestCase):
         pass
 
     def test_ukraine_language(self):
+        print(_("Body Text"))
         self.assertTrue(_("Body Text") == "Текст Тіла", 'Ukraine language fix error')

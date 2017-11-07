@@ -37,7 +37,7 @@ install:
 
 # command to run tests
 script:
-  - flake8 . --ignore=E501,E402
-  - pep8
+  - pycodestyle . --ignore=E501,E402
+  # - pep8
   - python ./manage.py test
   #- pytest
