@@ -46,6 +46,7 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password):
         return self.create_user(email, password)
 
+
 # A user model which doesn't extend AbstractUser
 @python_2_unicode_compatible
 class CustomUserModel(AbstractBaseUser):
@@ -64,6 +65,7 @@ class CustomUserModel(AbstractBaseUser):
         return self.name
 
     get_short_name = get_full_name
+
 
 # A simple extension of the core Oscar User model
 class ExtendedOscarUserModel(abstract_models.AbstractUser):

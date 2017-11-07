@@ -75,7 +75,7 @@ LANGUAGE_CODE = 'uk_UA'
 # Taken from Django's default setting for LANGUAGES
 LANGUAGES = (
     ('uk_UA', 'Ukrainian'),
-    )
+            )
 
 
 SITE_ID = 1
