@@ -1,7 +1,7 @@
-import django
+# import django
 from django.conf import settings
 from django.conf.urls import include, url
-from django.conf.urls.i18n import i18n_patterns
+# from django.conf.urls.i18n import i18n_patterns
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps import views
@@ -14,7 +14,6 @@ from apps.sitemaps import base_sitemaps
 admin.autodiscover()
 
 urlpatterns = [
-    # ********************************
     url(r'^', application.urls),
 
     # Include admin as convenience. It's unsupported and only included for developers.
