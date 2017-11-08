@@ -51,6 +51,9 @@ CACHES = {
     'default': env.cache(default='locmemcache://'),
 }
 
+SITE_ID = 1
+
+TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -63,36 +66,29 @@ USE_TZ = True
 TIME_ZONE = 'Europe/Kiev'
 # TIME_ZONE = 'Europe/London'
 
-TEST_RUNNER = 'django.test.runner.DiscoverRunner'
-
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
 # LANGUAGE_CODE = 'en-gb'
 # LANGUAGE_CODE = 'uk_UA'
 LANGUAGE_CODE = 'uk_UA'
 
-# Includes all languages that have >50% coverage in Transifex
-# Taken from Django's default setting for LANGUAGES
+# Includes all languages that have >50% coverage in Transifex, Taken from Django's default setting for LANGUAGES
 LANGUAGES = (('uk_UA', 'Ukrainian'),)
 
 
-SITE_ID = 1
-
-# If you set this to False, Django will make some optimizations so as not
-# to load the internationalization machinery.
+LOCALE_PATHS = ('locale',)  # fix Ukraine language bug
+# If you set this to False, Django will make some optimizations so as not to load the internationalization machinery
 USE_I18N = True
 
-# If you set this to False, Django will not format dates, numbers and
-# calendars according to the current locale
+# If you set this to False, Django will not format dates, numbers and calendars according to the current locale
 USE_L10N = True
 
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
 MEDIA_ROOT = location("public/media")
 
-# URL that handles the media served from MEDIA_ROOT. Make sure to use a
-# trailing slash if there is a path component (optional in other cases).
-# Examples: "http://media.lawrence.com", "http://example.com/media/"
+# URL that handles the media served from MEDIA_ROOT. Make sure to use a trailing slash if there is a path component
+# (optional in other cases) Examples: "http://media.lawrence.com", "http://example.com/media/"
 MEDIA_URL = '/media/'
 
 STATIC_URL = '/static/'
@@ -260,8 +256,12 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django_extensions',
 
+    # Custom managments tasks
+    'management',
+
     # Debug toolbar + extensions
     'debug_toolbar',
+
     # ====================
     # add my apps
     # ====================
@@ -333,6 +333,9 @@ OSCAR_SHOP_TAGLINE = 'Sandbox'
 
 OSCAR_RECENTLY_VIEWED_PRODUCTS = 20
 OSCAR_ALLOW_ANON_CHECKOUT = True
+
+# Currency
+OSCAR_DEFAULT_CURRENCY = 'UAH'
 
 # This is added to each template context by the core context processor.  It is
 # useful for test/stage/qa sites where you want to show the version of the site
