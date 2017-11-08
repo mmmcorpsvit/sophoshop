@@ -62,7 +62,7 @@ TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 # timezone as the operating system.
 # If running in a Windows environment this must be set to the same as your
 # system time zone.
-USE_TZ = True
+# USE_TZ = True
 TIME_ZONE = 'Europe/Kiev'
 # TIME_ZONE = 'Europe/London'
 
@@ -76,7 +76,7 @@ LANGUAGE_CODE = 'uk_UA'
 LANGUAGES = (('uk_UA', 'Ukrainian'),)
 
 
-LOCALE_PATHS = ('locale',)  # fix Ukraine language bug
+LOCALE_PATHS = (location('locale'),)  # fix Ukraine language bug
 # If you set this to False, Django will make some optimizations so as not to load the internationalization machinery
 USE_I18N = True
 
