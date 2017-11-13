@@ -315,8 +315,7 @@ INTERNAL_IPS = ['127.0.0.1', '::1']
 from oscar.defaults import * # noqa
 
 
-# Meta
-# ====
+# region 'Meta'
 OSCAR_SHOP_NAME = 'Світ Комфорту'
 # OSCAR_SHOP_TAGLINE = 'купити диван, матрац, ліжко, крісло, стіл, подушку в Тернополі: ціна, продаж'
 # OSCAR_HOMEPAGE = reverse_lazy('promotions:home')
@@ -335,11 +334,10 @@ OSCAR_HIDDEN_FEATURES = ['reviews', 'wishlists']
 # This is added to each template context by the core context processor.  It is
 # useful for test/stage/qa sites where you want to show the version of the site in the page title.
 DISPLAY_VERSION = DEBUG
+# endregion
 
 
-# Order processing
-# ================
-
+# region 'Order processing'
 # Sample order/line status settings. This is quite simplistic. It's like you'll
 # want to override the set_status method on the order object to do more sophisticated things.
 OSCAR_INITIAL_ORDER_STATUS = 'Pending'
@@ -359,16 +357,16 @@ OSCAR_ORDER_STATUS_CASCADE = {
     'Cancelled': 'Cancelled',
     'Complete': 'Shipped',
 }
+# endregion
 
-# LESS/CSS
+# region 'LESS/CS
 # ========
 # We default to using CSS files, rather than the LESS files that generate them.
 # If you want to develop Oscar's CSS, then set USE_LESS=True to enable the on-the-fly less processor.
 USE_LESS = False
+# endregion
 
-
-# Sentry
-# ======
+# region 'Sentry'
 if env('SENTRY_DSN', default=None):
     RAVEN_CONFIG = {'dsn': env('SENTRY_DSN', default=None)}
     LOGGING['handlers']['sentry'] = {
@@ -377,17 +375,15 @@ if env('SENTRY_DSN', default=None):
     }
     LOGGING['root']['handlers'].append('sentry')
     INSTALLED_APPS.append('raven.contrib.django.raven_compat')
+# endregion
 
-
-# Sorl
-# ====
-THUMBNAIL_DEBUG = False  # When set to True the ThumbnailNode.render method can raise errors. Django recommends that
-# tags never raise errors in the Node.render method but since sorl-thumbnail is such a complex tag we will need to have
-#  more debugging available.
+# region 'Sorl'
+THUMBNAIL_QUALITY = 100
+THUMBNAIL_DEBUG = False
 THUMBNAIL_KEY_PREFIX = 'oscar-sandbox'
 THUMBNAIL_KVSTORE = env('THUMBNAIL_KVSTORE', default='sorl.thumbnail.kvstores.cached_db_kvstore.KVStore')
 THUMBNAIL_REDIS_URL = env('THUMBNAIL_REDIS_URL', default=None)
-
+# endregion
 
 # Django 1.6 has switched to JSON serializing for security reasons, but it does not
 # serialize Models. We should resolve this by extending the

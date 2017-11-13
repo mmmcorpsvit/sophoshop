@@ -3,6 +3,7 @@ _private/
 .idea
 # whoosh_index/
 whoosh_index/*.*
+public/media/cache
 
 # virtualenv
 .venv
