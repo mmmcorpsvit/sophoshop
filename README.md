@@ -10,6 +10,6 @@ https://sophoshop.herokuapp.com/
 1. Ukraine language fix: https://github.com/mmmcorpsvit/sophoshop/issues/9
 
 ## Good Read:
-https://bitbucket.org/soshnikov/oscar-setup/wiki/browse/
-https://github.com/OriHoch/django-oscar-demo
-https://django-oscar.readthedocs.io/en/latest/internals/getting_started.html
+1. https://bitbucket.org/soshnikov/oscar-setup/wiki/browse/
+2. https://github.com/OriHoch/django-oscar-demo
+3. https://django-oscar.readthedocs.io/en/latest/internals/getting_started.html
