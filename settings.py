@@ -15,12 +15,8 @@ SQL_DEBUG = DEBUG
 TEMPLATE_DEBUG = DEBUG
 
 ALLOWED_HOSTS = [
-    'localhost', '127.0.0.1',  # '192.168.1.*',
+    'localhost', '127.0.0.1',  'sophoshop.herokuapp.com',  # '192.168.1.*',
 ]
-
-# for tests only
-if DEBUG:
-    ALLOWED_HOSTS += 'sophoshop.herokuapp.com'
 
 # This is needed for the hosted version of the sandbox
 ADMINS = (
