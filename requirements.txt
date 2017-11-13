@@ -17,12 +17,31 @@ django-environ == 0.4.4
 # Supported formats are printed when pillow is first installed. Instructions on how to get JPEG support are highly
 # platform specific, but guides for PIL should work for pillow as well. Generally speaking, you need to ensure that
 # libjpeg-dev is installed and found during installation.
-pillow==4.3.0
+pillow == 4.3.0
+
+
+
 
 
 # development
 django-debug-toolbar == 1.8
 pycodestyle
+openpyxl == 2.4.9
+
+
+
+
 
 # need for Heroku
 gunicorn
+
+
+
+
+
+# managements
+# for oscar_populate_countries management
+pycountry == 17.9.23
+
+# utils
+urllib3 == 1.22

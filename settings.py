@@ -4,24 +4,18 @@ import oscar
 
 env = environ.Env()
 
+
 # Path helper
-# location = lambda x: os.path.join(
-#    os.path.dirname(os.path.realpath(__file__)), x)
-
-
 def location(x):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), x)
 
 
 DEBUG = env.bool('DEBUG', default=True)
 SQL_DEBUG = DEBUG
+TEMPLATE_DEBUG = DEBUG
 
 ALLOWED_HOSTS = [
-    # 'latest.oscarcommerce.com',
-    # 'master.oscarcommerce.com',
-    'localhost',
-    '127.0.0.1',
-    # '192.168.1.*',
+    'localhost', '127.0.0.1',  # '192.168.1.*',
 ]
 
 # This is needed for the hosted version of the sandbox
@@ -58,22 +52,18 @@ TEST_RUNNER = 'django.test.runner.DiscoverRunner'
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
-# On Unix systems, a value of None will cause Django to use the same
-# timezone as the operating system.
-# If running in a Windows environment this must be set to the same as your
-# system time zone.
+# On Unix systems, a value of None will cause Django to use the same timezone as the operating system.
+# If running in a Windows environment this must be set to the same as your system time zone.
 # USE_TZ = True
 TIME_ZONE = 'Europe/Kiev'
-# TIME_ZONE = 'Europe/London'
+
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-# LANGUAGE_CODE = 'en-gb'
-# LANGUAGE_CODE = 'uk_UA'
 LANGUAGE_CODE = 'uk_UA'
 
 # Includes all languages that have >50% coverage in Transifex, Taken from Django's default setting for LANGUAGES
-LANGUAGES = (('uk_UA', 'Ukrainian'),)
+LANGUAGES = (('uk_UA', 'Ukrainian'),)  # dont delete!
 
 
 LOCALE_PATHS = (location('locale'),)  # fix Ukraine language bug
@@ -256,15 +246,13 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django_extensions',
 
-    # Custom managments tasks
-    'management',
-
     # Debug toolbar + extensions
     'debug_toolbar',
 
     # ====================
     # add my apps
     # ====================
+    'apps.utils',
     'apps.gateway',     # For allowing dashboard access
 
     'widget_tweaks',
@@ -295,7 +283,7 @@ APPEND_SLASH = True
 # ====================
 # Messages contrib app
 # ====================
-from django.contrib.messages import constants as messages
+from django.contrib.messages import constants as messages  # noqa
 MESSAGE_TAGS = {
     messages.ERROR: 'danger'
 }
@@ -324,31 +312,36 @@ INTERNAL_IPS = ['127.0.0.1', '::1']
 # ==============
 # Oscar settings
 # ==============
-from oscar.defaults import *
+from oscar.defaults import * # noqa
 
 
 # Meta
 # ====
-OSCAR_SHOP_TAGLINE = 'Sandbox'
+OSCAR_SHOP_NAME = 'Світ Комфорту'
+# OSCAR_SHOP_TAGLINE = 'купити диван, матрац, ліжко, крісло, стіл, подушку в Тернополі: ціна, продаж'
+# OSCAR_HOMEPAGE = reverse_lazy('promotions:home')
 
 OSCAR_RECENTLY_VIEWED_PRODUCTS = 20
 OSCAR_ALLOW_ANON_CHECKOUT = True
 
 # Currency
 OSCAR_DEFAULT_CURRENCY = 'UAH'
+# OSCAR_DEFAULT_CURRENCY = 'грн.'
+# OSCAR_CURRENCY_FORMAT = '#,##0'
+
+# Hidden Oscar features, e.g. wishlists or reviews
+OSCAR_HIDDEN_FEATURES = ['reviews', 'wishlists']
 
 # This is added to each template context by the core context processor.  It is
-# useful for test/stage/qa sites where you want to show the version of the site
-# in the page title.
-DISPLAY_VERSION = False
+# useful for test/stage/qa sites where you want to show the version of the site in the page title.
+DISPLAY_VERSION = DEBUG
 
 
 # Order processing
 # ================
 
 # Sample order/line status settings. This is quite simplistic. It's like you'll
-# want to override the set_status method on the order object to do more
-# sophisticated things.
+# want to override the set_status method on the order object to do more sophisticated things.
 OSCAR_INITIAL_ORDER_STATUS = 'Pending'
 OSCAR_INITIAL_LINE_STATUS = 'Pending'
 
@@ -360,8 +353,7 @@ OSCAR_ORDER_STATUS_PIPELINE = {
     'Complete': (),
 }
 
-# This dict defines the line statuses that will be set when an order's status
-# is changed
+# This dict defines the line statuses that will be set when an order's status is changed
 OSCAR_ORDER_STATUS_CASCADE = {
     'Being processed': 'Being processed',
     'Cancelled': 'Cancelled',
@@ -370,16 +362,13 @@ OSCAR_ORDER_STATUS_CASCADE = {
 
 # LESS/CSS
 # ========
-
 # We default to using CSS files, rather than the LESS files that generate them.
-# If you want to develop Oscar's CSS, then set USE_LESS=True to enable the
-# on-the-fly less processor.
+# If you want to develop Oscar's CSS, then set USE_LESS=True to enable the on-the-fly less processor.
 USE_LESS = False
 
 
 # Sentry
 # ======
-
 if env('SENTRY_DSN', default=None):
     RAVEN_CONFIG = {'dsn': env('SENTRY_DSN', default=None)}
     LOGGING['handlers']['sentry'] = {
@@ -392,19 +381,17 @@ if env('SENTRY_DSN', default=None):
 
 # Sorl
 # ====
-
-THUMBNAIL_DEBUG = DEBUG
+THUMBNAIL_DEBUG = False  # When set to True the ThumbnailNode.render method can raise errors. Django recommends that
+# tags never raise errors in the Node.render method but since sorl-thumbnail is such a complex tag we will need to have
+#  more debugging available.
 THUMBNAIL_KEY_PREFIX = 'oscar-sandbox'
-THUMBNAIL_KVSTORE = env(
-    'THUMBNAIL_KVSTORE',
-    default='sorl.thumbnail.kvstores.cached_db_kvstore.KVStore')
+THUMBNAIL_KVSTORE = env('THUMBNAIL_KVSTORE', default='sorl.thumbnail.kvstores.cached_db_kvstore.KVStore')
 THUMBNAIL_REDIS_URL = env('THUMBNAIL_REDIS_URL', default=None)
 
 
 # Django 1.6 has switched to JSON serializing for security reasons, but it does not
 # serialize Models. We should resolve this by extending the
-# django/core/serializers/json.Serializer to have the `dumps` function. Also
-# in tests/config.py
+# django/core/serializers/json.Serializer to have the `dumps` function. Also in tests/config.py
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
 # Try and import local settings which can be used to override any of the above.
