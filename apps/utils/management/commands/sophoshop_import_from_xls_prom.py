@@ -104,7 +104,7 @@ class Impxls(object):
                 # data = download(image)
 
                 file_name = image.replace('https://images.ua.prom.st/', '')
-                fn = tempfile.gettempdir()+'\\'+file_name
+                fn = tempfile.gettempdir() + '\\' + file_name
 
                 download(c, image_url, fn)
 
@@ -212,7 +212,7 @@ class Impxls(object):
             )
 
             # logger.info('[%i/%i] %s ' % (row.index, wb.rows.count, row[1].value))
-            logger.info('[%i/%i] [%s] %s' % (index-1, wb.max_row, cat, row[1].value,))
+            logger.info('[%i/%i] [%s] %s' % (index - 1, wb.max_row, cat, row[1].value,))
             # logger.info(row[1].value)
 
         msg = "New items: %d, updated items: %d" % (stats['new_items'],

@@ -15,7 +15,7 @@ SQL_DEBUG = DEBUG
 TEMPLATE_DEBUG = DEBUG
 
 ALLOWED_HOSTS = [
-    'localhost', '127.0.0.1',  'sophoshop.herokuapp.com',  # '192.168.1.*',
+    'localhost', '127.0.0.1', 'sophoshop.herokuapp.com',  # '192.168.1.*',
 ]
 
 # This is needed for the hosted version of the sandbox
@@ -308,7 +308,7 @@ INTERNAL_IPS = ['127.0.0.1', '::1']
 # endregion
 
 # region 'Oscar settings'
-from oscar.defaults import * # noqa
+from oscar.defaults import *  # noqa
 # endregion
 
 # region 'Meta'
