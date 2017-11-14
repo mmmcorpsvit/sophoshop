@@ -2,8 +2,8 @@
 _private/
 .idea
 # whoosh_index/
-whoosh_index/
-public/media/cache/
+whoosh_index/*.*
+public/media/cache/*.*
 ~lock.*.*
 
 # virtualenv
