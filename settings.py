@@ -73,6 +73,7 @@ USE_I18N = True
 # If you set this to False, Django will not format dates, numbers and calendars according to the current locale
 USE_L10N = True
 
+# region 'media and static'
 # Absolute path to the directory that holds media.
 # Example: "/home/media/media.lawrence.com/"
 MEDIA_ROOT = location("public/media")
@@ -91,6 +92,7 @@ STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 )
+# endregion
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = '$)a7n&o80u!6y5t-+jrd3)3!%vh&shg$wqpjpxc!ar&p#!)n1a'
@@ -152,11 +154,9 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'urls'
 
 
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error.
-# See http://docs.djangoproject.com/en/dev/topics/logging for
-# more details on how to customize your logging configuration.
+# A sample logging configuration. The only tangible logging performed by this configuration is to send an email to
+# the site admins on every HTTP 500 error. See http://docs.djangoproject.com/en/dev/topics/logging for
+#  more details on how to customize your logging configuration.
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': True,
@@ -258,8 +258,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
 ] + oscar.get_core_apps()
 
-# Add Oscar's custom auth backend so users can sign in using their email
-# address.
+# Add Oscar's custom auth backend so users can sign in using their email address
 AUTHENTICATION_BACKENDS = (
     'oscar.apps.customer.auth_backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
@@ -280,15 +279,14 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGIN_REDIRECT_URL = '/'
 APPEND_SLASH = True
 
-# ====================
-# Messages contrib app
-# ====================
+# region 'Messages contrib app'
 from django.contrib.messages import constants as messages  # noqa
 MESSAGE_TAGS = {
     messages.ERROR: 'danger'
 }
+# endregion
 
-# Haystack settings
+# region 'Haystack settings'
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
@@ -303,17 +301,15 @@ HAYSTACK_CONNECTIONS = {
 #        'INCLUDE_SPELLING': True
 #    },
 # }
+# endregion
 
-# =============
-# Debug Toolbar
-# =============
+# region 'Debug Toolbar'
 INTERNAL_IPS = ['127.0.0.1', '::1']
+# endregion
 
-# ==============
-# Oscar settings
-# ==============
+# region 'Oscar settings'
 from oscar.defaults import * # noqa
-
+# endregion
 
 # region 'Meta'
 OSCAR_SHOP_NAME = 'Світ Комфорту'
