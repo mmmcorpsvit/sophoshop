@@ -1,4 +1,5 @@
-# import os
+import os
+# from os import rename
 # import tarfile
 # import zipfile
 # import zlib
@@ -18,16 +19,30 @@ from django.core.management.base import BaseCommand, CommandError
 # from django.db.transaction import atomic
 # from django.db import transaction
 # from django.utils.translation import ugettext_lazy as _
+from django.db.transaction import atomic
 
 from oscar.apps.catalogue.categories import create_from_breadcrumbs
 from oscar.core.loading import get_class, get_classes, get_model
 
 from openpyxl import load_workbook
 
+from shutil import move
+from PIL import Image
+
+import subprocess
+
+from settings import SITE_ROOT
+
+
 ImportingError = get_class('partner.exceptions', 'ImportingError')
 Partner, StockRecord = get_classes('partner.models', ['Partner', 'StockRecord'])
-ProductClass, Product, Category, ProductCategory = get_classes(
-    'catalogue.models', ('ProductClass', 'Product', 'Category', 'ProductCategory'))
+ProductClass, ProductAttribute, Product, Category, ProductCategory = get_classes(
+    'catalogue.models', ('ProductClass', 'ProductAttribute', 'Product',
+                         'Category', 'ProductCategory'))
+
+AttributeOption, AttributeOptionGroup = get_classes(
+    'catalogue.models', ('AttributeOption', 'AttributeOptionGroup'))
+
 ProductImage = get_model('catalogue', 'productimage')
 
 
@@ -35,6 +50,23 @@ logger = logging.getLogger('oscar.catalogue.import')
 urllib3.disable_warnings()
 
 # use: sophoshop_import_from_xls_prom export-products.xlsx --flush --add_images
+# must be in _private/ImageMagic/convert.exe from ImagePagic Portable
+
+
+def run_win_cmd(cmd):
+    result = []
+    process = subprocess.Popen(cmd,
+                               shell=True,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    for line in process.stdout:
+        result.append(line)
+    errcode = process.returncode
+    for line in result:
+        logger.info(line)
+    if errcode is not None:
+        logger.error(cmd)
+        raise Exception('cmd %s failed, see above for details', cmd)
 
 
 def download(c, url, filename):
@@ -65,13 +97,66 @@ class Impxls(object):
         self._flush = flush
         self._add_images = add_images
 
-    def _create_item(self, product_class, category_str, upc, title, description, images_urls, price, stats):
+    def _create_item(self, product_class_name, manufactur, category_str, upc, title, description, images_urls,
+                     price, stats):
         # Ignore any entries that are NULL
         if description == 'NULL':
             description = ''
 
         # Create item class and item
-        product_class, __ = ProductClass.objects.get_or_create(name=product_class)
+        product_class, __ = ProductClass.objects.get_or_create(name=product_class_name, track_stock=False)
+
+        # группа опцый
+        # sleep_pace_options = AttributeOptionGroup.objects.get_or_create(name='Размеры спального места',
+        #                                                                 slug='sleep place')
+        # AttributeOption.objects.get_or_create(
+        #     group=sleep_pace_options,
+        #     name='Ширина',
+        #     # code='A1',
+        #     code='width',
+        #     type='integer',
+        # )
+        #
+
+        # language = AttributeOptionGroup.objects.get_or_create(name='Language')
+        #
+        # AttributeOption.objects.get_or_create(
+        #     group=language,
+        #     option='English'
+        # )
+        # AttributeOption.objects.get_or_create(
+        #     group=language,
+        #     option='Croatian'
+        # )
+        #
+        # klass = ProductClass.objects.create(name='foo', slug='bar')
+        # ProductAttribute.objects.create(
+        #     product_class=klass,
+        #     name='Language',
+        #     code='language',
+        #     type='option',
+        #     option_group=language
+        # )
+
+        # if ProductAttribute.get(name=product_class_name) is None:
+        ProductAttribute.objects.get_or_create(
+            product_class=product_class,
+            name='Виробник',
+            required=True,
+            code='manufacturer',
+            type='text',
+            )
+
+        ProductAttribute.objects.get_or_create(
+            product_class=product_class,
+            name='Ширина',
+            # code='A1',
+            code='width',
+            type='integer',
+            )
+
+        # product_class.Виробник = manufactur
+
         try:
             item = Product.objects.get(upc=upc)
             stats['updated_items'] += 1
@@ -81,6 +166,7 @@ class Impxls(object):
         item.upc = upc
         item.title = title
         item.description = description
+        # item.attr.manufactur = manufactur
         item.product_class = product_class
         if not (price is None):
             item.price = price
@@ -103,10 +189,31 @@ class Impxls(object):
 
                 # data = download(image)
 
-                file_name = image.replace('https://images.ua.prom.st/', '')
+                file_name = image.replace('https://images.ua.prom.st/', '').strip()
                 fn = tempfile.gettempdir() + '\\' + file_name
+                fn = fn.strip()
+                # logger.info(fn)
 
                 download(c, image_url, fn)
+                # logger.info(image_url)
+
+                # fix #15, some files has png on jpeg file error content
+                with Image.open(fn) as img:
+                    image_format = img.format
+
+                # logger.info(img.format)  # 'JPEG'
+                if image_format == 'PNG':
+                    nfn = os.path.splitext(fn)[0]+'.jpg'
+                    s = '%s/%s/convert.exe "%s" -background white -flatten "%s"' % \
+                        (SITE_ROOT, '_private/ImageMagic', fn, nfn)
+                    logger.info(s)
+                    res = run_win_cmd(s)
+                    logging.info(res)
+                    fn = nfn
+                else:
+                    if not image_format == 'JPEG':
+                        logger.error('image_format=%s' % image_format)
+                        exit()
 
                 new_file = File(open(fn, 'rb'))
                 im = ProductImage(product=item)
@@ -116,7 +223,7 @@ class Impxls(object):
 
         # stockrecord
         self._create_stockrecord(item, 'Світ Комфорту', upc,
-                                 price, 14)
+                                 price, 0)
 
         return item
 
@@ -138,7 +245,7 @@ class Impxls(object):
         stock.partner_sku = partner_sku
         stock.price_excl_tax = d(price)
         stock.price_retail = d(price)
-        stock.num_in_stock = num_in_stock
+        # stock.num_in_stock = num_in_stock
         stock.save()
 
     def _flush_product_data(self):
@@ -150,6 +257,8 @@ class Impxls(object):
         ProductClass.objects.all().delete()
         Partner.objects.all().delete()
         StockRecord.objects.all().delete()
+        AttributeOptionGroup.objects.all().delete()
+        AttributeOption.objects.all().delete()
         if not self._add_images:
             logger.info('Flush images')
             ProductImage.objects.all().delete()
@@ -172,6 +281,13 @@ class Impxls(object):
 
         for row in wb.rows:
             index += 1
+
+            # if index > 50:
+            #    break
+
+            # if index < 71:
+            #    continue
+
             if skip_first_row:
                 logger.info('[0 = skip]')
                 skip_first_row = False
@@ -196,12 +312,17 @@ class Impxls(object):
                 .replace("Дитячі ліжка", 'Ліжка') \
                 .replace('Столи', 'Столи гостьові') \
                 .replace('Столи гостьові-трансформери', 'Столи журнальні')\
-                .replace('Стільці', 'Стільці та табурети')
+                .replace('Стільці', 'Стільці та табурети') \
+                .replace('Дитячі дивани', 'Дивани') \
+                .replace('Кутові дивани', 'Дивани') \
+                .replace('Прямі дивани', 'Дивани')
 
             cats[cat] = None
 
             self._create_item(
-                product_class=str(row[16].value).replace('https://prom.ua/', ''),
+                # product_class=str(row[16].value).replace('https://prom.ua/', ''),
+                product_class_name=cat,
+                manufactur=str(row[24].value),
                 category_str=cat,
                 upc=str(row[20].value),
                 title=str(row[1].value).strip(),

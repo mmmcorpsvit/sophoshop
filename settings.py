@@ -5,6 +5,9 @@ import oscar
 env = environ.Env()
 
 
+SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
+
+
 # Path helper
 def location(x):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), x)
@@ -12,10 +15,10 @@ def location(x):
 
 DEBUG = env.bool('DEBUG', default=True)
 SQL_DEBUG = DEBUG
-TEMPLATE_DEBUG = DEBUG
+# TEMPLATE_DEBUG = DEBUG  # NOQA (need for PIL convert error handle)
 
 ALLOWED_HOSTS = [
-    'localhost', '127.0.0.1', 'sophoshop.herokuapp.com',  # '192.168.1.*',
+    'localhost', '127.0.0.1', 'sophoshop.herokuapp.com',  '192.168.1.101',
 ]
 
 # This is needed for the hosted version of the sandbox
