@@ -8,6 +8,8 @@ https://sophoshop.herokuapp.com/
 
 ## Remarks:
 1. Ukraine language fix: https://github.com/mmmcorpsvit/sophoshop/issues/9
+2. .manage.py build_solr_schema fix: https://github.com/django-haystack/django-haystack/issues/1519
+
 
 ## Good Read:
 1. https://bitbucket.org/soshnikov/oscar-setup/wiki/browse/

@@ -8,7 +8,8 @@
   "environments": {
     "test": {
       "scripts": {
-        "test-setup": "python manage.py collectstatic --noinput",
+	"setup": "python manage.py thumbnail clear"
+        "test-setup": "python manage.py collectstatic --noinput  ",
         "test": "python manage.py test"
       }
     }

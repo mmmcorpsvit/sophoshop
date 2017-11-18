@@ -1,0 +1,20 @@
+<fieldType name="spell_ru" class="solr.TextField" positionIncrementGap="100" omitNorms="true">
+    <analyzer type="query">
+        <tokenizer class="solr.StandardTokenizerFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.ICUTransformFilterFactory" id="Any-Cyrillic; NFD; [^\p{Alnum}] Remove" />
+        <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_ru.txt" format="snowball" />
+        <!--<filter class="solr.SnowballPorterFilterFactory" language="Russian"/>-->
+        <filter class="solr.RussianLightStemFilterFactory"/>
+        <filter class="solr.EdgeNGramFilterFactory" minGramSize="4" maxGramSize="25" />
+    </analyzer>
+    <analyzer type="index">
+        <tokenizer class="solr.StandardTokenizerFactory"/>
+        <filter class="solr.LowerCaseFilterFactory"/>
+        <filter class="solr.LengthFilterFactory" min="3" max="256" />
+        <filter class="solr.StopFilterFactory" ignoreCase="true" words="lang/stopwords_ru.txt" format="snowball" />
+        <!--<filter class="solr.SnowballPorterFilterFactory" language="Russian"/>-->
+        <filter class="solr.RussianLightStemFilterFactory"/>
+        <filter class="solr.EdgeNGramFilterFactory" minGramSize="4" maxGramSize="25" />
+    </analyzer>
+</fieldType>

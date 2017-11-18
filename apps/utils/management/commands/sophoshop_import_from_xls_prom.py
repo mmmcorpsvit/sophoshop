@@ -97,7 +97,7 @@ class Impxls(object):
         self._flush = flush
         self._add_images = add_images
 
-    def _create_item(self, product_class_name, manufactur, category_str, upc, title, description, images_urls,
+    def _create_item(self, row, product_class_name, manufactur, category_str, upc, title, description, images_urls,
                      price, stats):
         # Ignore any entries that are NULL
         if description == 'NULL':
@@ -139,6 +139,7 @@ class Impxls(object):
         # )
 
         # if ProductAttribute.get(name=product_class_name) is None:
+        # базовые опции для всех
         ProductAttribute.objects.get_or_create(
             product_class=product_class,
             name='Виробник',
@@ -147,13 +148,12 @@ class Impxls(object):
             type='text',
             )
 
-        ProductAttribute.objects.get_or_create(
-            product_class=product_class,
-            name='Ширина',
-            # code='A1',
-            code='width',
-            type='integer',
-            )
+        # ProductAttribute.objects.get_or_create(
+        #     product_class=product_class,
+        #     name='Ширина',
+        #     code='width',
+        #     type='integer',
+        #     )
 
         # product_class.Виробник = manufactur
 
@@ -178,24 +178,19 @@ class Impxls(object):
 
         c = urllib3.PoolManager()
 
-        # image
+        # region 'image'
         if self._add_images:
             images = str(images_urls).split(',')
             for image in images:
                 image_url = image.strip()
                 if len(image_url) < 5:
                     continue
-                # logger.info('download image: %s' % image)
-
-                # data = download(image)
 
                 file_name = image.replace('https://images.ua.prom.st/', '').strip()
                 fn = tempfile.gettempdir() + '\\' + file_name
                 fn = fn.strip()
-                # logger.info(fn)
 
                 download(c, image_url, fn)
-                # logger.info(image_url)
 
                 # fix #15, some files has png on jpeg file error content
                 with Image.open(fn) as img:
@@ -220,16 +215,16 @@ class Impxls(object):
                 im.original.save(file_name, new_file, save=False)
                 im.save()
                 logger.debug('Image added to "%s"' % item)
+        # endregion
 
         # stockrecord
-        self._create_stockrecord(item, 'Світ Комфорту', upc,
-                                 price, 0)
+        self._create_stockrecord(item, 'Світ Комфорту', upc, price)
 
         return item
 
     @staticmethod
     def _create_stockrecord(item, partner_name, partner_sku,
-                            price, num_in_stock):
+                            price):
         def d(x):
             return int(x)
 
@@ -321,6 +316,7 @@ class Impxls(object):
 
             self._create_item(
                 # product_class=str(row[16].value).replace('https://prom.ua/', ''),
+                row,
                 product_class_name=cat,
                 manufactur=str(row[24].value),
                 category_str=cat,

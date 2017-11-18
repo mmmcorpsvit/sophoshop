@@ -13,12 +13,17 @@ def location(x):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), x)
 
 
+DEV_APP_NAME = 'sophoshop'
+
 DEBUG = env.bool('DEBUG', default=True)
 SQL_DEBUG = DEBUG
 # TEMPLATE_DEBUG = DEBUG  # NOQA (need for PIL convert error handle)
 
 ALLOWED_HOSTS = [
-    'localhost', '127.0.0.1', 'sophoshop.herokuapp.com',  '192.168.1.101',
+    'localhost',
+    '127.0.0.1',
+    '%s.herokuapp.com' % DEV_APP_NAME,
+    '192.168.1.101',
 ]
 
 # This is needed for the hosted version of the sandbox
@@ -26,6 +31,7 @@ ADMINS = (
     ('David Winterbottom', 'david.winterbottom@gmail.com'),
     ('Michael van Tellingen', 'michaelvantellingen@gmail.com'),
 )
+
 EMAIL_SUBJECT_PREFIX = '[Oscar sandbox] '
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
@@ -249,6 +255,9 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django_extensions',
 
+
+    # 'haystack',
+
     # Debug toolbar + extensions
     'debug_toolbar',
 
@@ -290,20 +299,25 @@ MESSAGE_TAGS = {
 # endregion
 
 # region 'Haystack settings'
-HAYSTACK_CONNECTIONS = {
-    'default': {
-        'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
-        'PATH': location('whoosh_index'),
-    },
-}
+
 # Here's a sample Haystack config if using Solr (which is recommended)
+HAYSTACK_CONNECTIONS = {
+   'default': {
+       'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
+       'URL': 'http://127.0.0.1:8984/solr/%s/' % DEV_APP_NAME,
+       'INCLUDE_SPELLING': True,
+   },
+}
+
 # HAYSTACK_CONNECTIONS = {
-#    'default': {
-#        'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-#        'URL': u'http://127.0.0.1:8983/solr/oscar_latest/',
-#        'INCLUDE_SPELLING': True
-#    },
+#     'default': {
+#         'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
+#         'PATH': 'whoosh',
+#         'INCLUDE_SPELLING': True,
+#     },
 # }
+
+
 # endregion
 
 # region 'Debug Toolbar'
@@ -328,7 +342,7 @@ OSCAR_DEFAULT_CURRENCY = 'UAH'
 # OSCAR_CURRENCY_FORMAT = '#,##0'
 
 # Hidden Oscar features, e.g. wishlists or reviews
-OSCAR_HIDDEN_FEATURES = ['reviews', 'wishlists']
+# OSCAR_HIDDEN_FEATURES = ['reviews', 'wishlists']
 
 # This is added to each template context by the core context processor.  It is
 # useful for test/stage/qa sites where you want to show the version of the site in the page title.

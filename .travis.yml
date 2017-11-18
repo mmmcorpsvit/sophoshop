@@ -39,5 +39,8 @@ install:
 script:
   - pycodestyle . --ignore=E501,E402
   # - pep8
+  - python ./manage.py thumbnail clear
+  - python ./manage.py collectstatic --noinput
+
   - python ./manage.py test
   #- pytest
