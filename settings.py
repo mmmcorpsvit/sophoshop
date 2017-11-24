@@ -1,9 +1,9 @@
 import os
 import environ
 import oscar
+from debug_toolbar import settings as dt_settings
 
 env = environ.Env()
-
 
 SITE_ROOT = os.path.dirname(os.path.realpath(__file__))
 
@@ -16,7 +16,7 @@ def location(x):
 DEV_APP_NAME = 'sophoshop'
 
 DEBUG = env.bool('DEBUG', default=True)
-SQL_DEBUG = DEBUG
+# SQL_DEBUG = DEBUG
 # TEMPLATE_DEBUG = DEBUG  # NOQA (need for PIL convert error handle)
 
 ALLOWED_HOSTS = [
@@ -32,10 +32,12 @@ ADMINS = (
     ('Michael van Tellingen', 'michaelvantellingen@gmail.com'),
 )
 
-EMAIL_SUBJECT_PREFIX = '[Oscar sandbox] '
+# region 'EMAIL'
+EMAIL_SUBJECT_PREFIX = DEV_APP_NAME
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 MANAGERS = ADMINS
+# endregion
 
 # Use a Sqlite database by default
 DATABASES = {
@@ -51,8 +53,23 @@ DATABASES = {
 }
 
 CACHES = {
-    'default': env.cache(default='locmemcache://'),
+    'default': {
+        'BACKEND': 'redis_cache.RedisCache',
+        'LOCATION': '127.0.0.1:6379s',
+    },
+
+
+    # 'default': env.cache(default='locmemcache://'),
+    # 'default': None
 }
+
+
+# почемуто не сохраняются значения атрибутов, похоже они уходят в кеш с концами
+# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
+# SESSION_ENGINE = 'redis_sessions.session'
+# SESSION_REDIS_UNIX_DOMAIN_SOCKET_PATH = '/var/run/redis/redis.sock'
 
 SITE_ID = 1
 
@@ -140,6 +157,8 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE = [
+    # 'django.middleware.cache.UpdateCacheMiddleware',
+
     'debug_toolbar.middleware.DebugToolbarMiddleware',
 
     'django.middleware.security.SecurityMiddleware',
@@ -158,6 +177,8 @@ MIDDLEWARE = [
 
     # Ensure a valid basket is added to the request instance for every request
     'oscar.apps.basket.middleware.BasketMiddleware',
+
+    # 'django.middleware.cache.FetchFromCacheMiddleware',
 ]
 
 ROOT_URLCONF = 'urls'
@@ -255,20 +276,30 @@ INSTALLED_APPS = [
     'django.contrib.sitemaps',
     'django_extensions',
 
-
     # 'haystack',
-
-    # Debug toolbar + extensions
-    'debug_toolbar',
 
     # ====================
     # add my apps
     # ====================
     'apps.utils',
+    'apps.search2',
     'apps.gateway',     # For allowing dashboard access
 
     'widget_tweaks',
 ] + oscar.get_core_apps()
+
+if DEBUG:
+    INSTALLED_APPS += [
+        # Debug toolbar + extensions
+        'debug_toolbar',
+        'haystack_panel',
+        # 'debug_toolbar_htmltidy',
+    ]
+
+    # DEBUG_TOOLBAR_PANELS = dt_settings.get_panels()+['haystack_panel.panel.HaystackDebugPanel']
+
+
+# dt_settings.update_toolbar_panels()
 
 # Add Oscar's custom auth backend so users can sign in using their email address
 AUTHENTICATION_BACKENDS = (
@@ -309,6 +340,7 @@ HAYSTACK_CONNECTIONS = {
    },
 }
 
+
 # HAYSTACK_CONNECTIONS = {
 #     'default': {
 #         'ENGINE': 'haystack.backends.whoosh_backend.WhooshEngine',
@@ -317,7 +349,7 @@ HAYSTACK_CONNECTIONS = {
 #     },
 # }
 
-
+# HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 # endregion
 
 # region 'Debug Toolbar'
@@ -326,9 +358,6 @@ INTERNAL_IPS = ['127.0.0.1', '::1']
 
 # region 'Oscar settings'
 from oscar.defaults import *  # noqa
-# endregion
-
-# region 'Meta'
 OSCAR_SHOP_NAME = 'Світ Комфорту'
 # OSCAR_SHOP_TAGLINE = 'купити диван, матрац, ліжко, крісло, стіл, подушку в Тернополі: ціна, продаж'
 # OSCAR_HOMEPAGE = reverse_lazy('promotions:home')
@@ -343,10 +372,6 @@ OSCAR_DEFAULT_CURRENCY = 'UAH'
 
 # Hidden Oscar features, e.g. wishlists or reviews
 # OSCAR_HIDDEN_FEATURES = ['reviews', 'wishlists']
-
-# This is added to each template context by the core context processor.  It is
-# useful for test/stage/qa sites where you want to show the version of the site in the page title.
-DISPLAY_VERSION = DEBUG
 # endregion
 
 
@@ -390,10 +415,10 @@ if env('SENTRY_DSN', default=None):
     INSTALLED_APPS.append('raven.contrib.django.raven_compat')
 # endregion
 
-# region 'Sorl'
+# region 'Sorl_Thumbnail'
 THUMBNAIL_QUALITY = 100
 THUMBNAIL_DEBUG = False
-THUMBNAIL_KEY_PREFIX = 'oscar-sandbox'
+THUMBNAIL_KEY_PREFIX = DEV_APP_NAME
 THUMBNAIL_KVSTORE = env('THUMBNAIL_KVSTORE', default='sorl.thumbnail.kvstores.cached_db_kvstore.KVStore')
 THUMBNAIL_REDIS_URL = env('THUMBNAIL_REDIS_URL', default=None)
 # endregion

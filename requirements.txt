@@ -21,12 +21,14 @@ pillow == 4.3.0
 
 
 
-
-
 # development
-django-debug-toolbar == 1.8
+django-debug-toolbar == 1.9.1
+django-haystack-panel == 0.2.1
+django-debug-toolbar == 1.9.1
+
 pycodestyle
 openpyxl == 2.4.9
+
 
 
 
@@ -52,3 +54,9 @@ urllib3 == 1.22
 solr == 0.4
 
 
+# thumbnails
+redis == 2.10.6
+
+# redis django cache backend
+django-redis-cache == 1.7.1
+# django-redis-sessions == 0.6.1

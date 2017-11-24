@@ -19,26 +19,27 @@ from django.core.management.base import BaseCommand, CommandError
 # from django.db.transaction import atomic
 # from django.db import transaction
 # from django.utils.translation import ugettext_lazy as _
-from django.db.transaction import atomic
+# from django.db.transaction import atomic
 
 from oscar.apps.catalogue.categories import create_from_breadcrumbs
 from oscar.core.loading import get_class, get_classes, get_model
 
 from openpyxl import load_workbook
 
-from shutil import move
+# from shutil import move
 from PIL import Image
 
 import subprocess
 
 from settings import SITE_ROOT
 
-
 ImportingError = get_class('partner.exceptions', 'ImportingError')
 Partner, StockRecord = get_classes('partner.models', ['Partner', 'StockRecord'])
-ProductClass, ProductAttribute, Product, Category, ProductCategory = get_classes(
+
+ProductClass, ProductAttribute, Product, Category, ProductCategory, ProductAttributeValue = get_classes(
     'catalogue.models', ('ProductClass', 'ProductAttribute', 'Product',
-                         'Category', 'ProductCategory'))
+                         'Category', 'ProductCategory', 'ProductAttributeValue'))
+
 
 AttributeOption, AttributeOptionGroup = get_classes(
     'catalogue.models', ('AttributeOption', 'AttributeOptionGroup'))
@@ -104,7 +105,8 @@ class Impxls(object):
             description = ''
 
         # Create item class and item
-        product_class, __ = ProductClass.objects.get_or_create(name=product_class_name, track_stock=False)
+        # product_class, __ = ProductClass.objects.get_or_create(name=product_class_name, track_stock=False)
+        klass, __ = ProductClass.objects.get_or_create(name=product_class_name, track_stock=False)
 
         # группа опцый
         # sleep_pace_options = AttributeOptionGroup.objects.get_or_create(name='Размеры спального места',
@@ -140,45 +142,67 @@ class Impxls(object):
 
         # if ProductAttribute.get(name=product_class_name) is None:
         # базовые опции для всех
-        ProductAttribute.objects.get_or_create(
-            product_class=product_class,
-            name='Виробник',
+
+        pa_vendor = ProductAttribute.objects.get_or_create(
+            product_class=klass,
+            name='Виробник',    # text in admin
             required=True,
-            code='manufacturer',
-            type='text',
+            code='vendor',      # name in DB
+            type='text',        # type
+            # type='int',
             )
 
-        # ProductAttribute.objects.get_or_create(
-        #     product_class=product_class,
-        #     name='Ширина',
-        #     code='width',
-        #     type='integer',
-        #     )
+        # pa_weight.save()
 
-        # product_class.Виробник = manufactur
+        # logging.info(pa_weight)
 
+        """
         try:
             item = Product.objects.get(upc=upc)
             stats['updated_items'] += 1
         except Product.DoesNotExist:
             item = Product()
             stats['new_items'] += 1
+        """
+
+        item = Product()
         item.upc = upc
         item.title = title
         item.description = description
-        # item.attr.manufactur = manufactur
-        item.product_class = product_class
+        # item.manufactur = manufactur
+        item.attr.vendor = manufactur
+        # item.attr.weight = manufactur
+
+        item.product_class = klass
+
         if not (price is None):
             item.price = price
+
         item.save()
 
-        # Category
+        # Set attributes
+        # weight_attr = ProductAttributeValue()
+
+        """
+        weight_attr = ProductAttribute()
+        weight_attr.product = item
+        weight_attr.attribute = pa_vendor
+        weight_attr.value_text = 'we need more money corporation'
+        weight_attr.save()
+        """
+
+        item2 = Product.objects.get(upc=upc)
+        i2 = item2.vendor
+
+        # Associate with a category
         cat = create_from_breadcrumbs(category_str)
         ProductCategory.objects.update_or_create(product=item, category=cat)
 
-        c = urllib3.PoolManager()
+        # Set the price
+        self._create_stockrecord(item, 'Склад по умолчанию', upc, price)  # use one stock how main for sales
 
         # region 'image'
+        c = urllib3.PoolManager()
         if self._add_images:
             images = str(images_urls).split(',')
             for image in images:
@@ -217,14 +241,10 @@ class Impxls(object):
                 logger.debug('Image added to "%s"' % item)
         # endregion
 
-        # stockrecord
-        self._create_stockrecord(item, 'Світ Комфорту', upc, price)
-
         return item
 
     @staticmethod
-    def _create_stockrecord(item, partner_name, partner_sku,
-                            price):
+    def _create_stockrecord(item, partner_name, partner_sku, price):
         def d(x):
             return int(x)
 
@@ -277,8 +297,8 @@ class Impxls(object):
         for row in wb.rows:
             index += 1
 
-            # if index > 50:
-            #    break
+            if index > 50:
+                break
 
             # if index < 71:
             #    continue
