@@ -106,100 +106,34 @@ class Impxls(object):
 
         # Create item class and item
         # product_class, __ = ProductClass.objects.get_or_create(name=product_class_name, track_stock=False)
-        klass, __ = ProductClass.objects.get_or_create(name=product_class_name, track_stock=False)
+        klass, __ = ProductClass.objects.get_or_create(name=product_class_name,
+                                                       track_stock=False)
 
-        # группа опцый
-        # sleep_pace_options = AttributeOptionGroup.objects.get_or_create(name='Размеры спального места',
-        #                                                                 slug='sleep place')
-        # AttributeOption.objects.get_or_create(
-        #     group=sleep_pace_options,
-        #     name='Ширина',
-        #     # code='A1',
-        #     code='width',
-        #     type='integer',
-        # )
-        #
-
-        # language = AttributeOptionGroup.objects.get_or_create(name='Language')
-        #
-        # AttributeOption.objects.get_or_create(
-        #     group=language,
-        #     option='English'
-        # )
-        # AttributeOption.objects.get_or_create(
-        #     group=language,
-        #     option='Croatian'
-        # )
-        #
-        # klass = ProductClass.objects.create(name='foo', slug='bar')
-        # ProductAttribute.objects.create(
-        #     product_class=klass,
-        #     name='Language',
-        #     code='language',
-        #     type='option',
-        #     option_group=language
-        # )
-
-        # if ProductAttribute.get(name=product_class_name) is None:
-        # базовые опции для всех
-
-        pa_vendor = ProductAttribute.objects.get_or_create(
+        ProductAttribute.objects.get_or_create(  # create and/or get created class
             product_class=klass,
             name='Виробник',    # text in admin
-            required=True,
+            required=False,
             code='vendor',      # name in DB
             type='text',        # type
-            # type='int',
             )
 
-        # pa_weight.save()
-
-        # logging.info(pa_weight)
-
-        """
-        try:
-            item = Product.objects.get(upc=upc)
-            stats['updated_items'] += 1
-        except Product.DoesNotExist:
-            item = Product()
-            stats['new_items'] += 1
-        """
-
-        item = Product()
+        item = Product(product_class=klass)     # inherit from class!
         item.upc = upc
         item.title = title
         item.description = description
-        # item.manufactur = manufactur
-        item.attr.vendor = manufactur
-        # item.attr.weight = manufactur
-
-        item.product_class = klass
+        item.attr.vendor = manufactur         # Set attributes
 
         if not (price is None):
             item.price = price
 
         item.save()
 
-        # Set attributes
-        # weight_attr = ProductAttributeValue()
-
-        """
-        weight_attr = ProductAttribute()
-        weight_attr.product = item
-        weight_attr.attribute = pa_vendor
-        weight_attr.value_text = 'we need more money corporation'
-        weight_attr.save()
-        """
-
-        item2 = Product.objects.get(upc=upc)
-        i2 = item2.vendor
-
         # Associate with a category
         cat = create_from_breadcrumbs(category_str)
         ProductCategory.objects.update_or_create(product=item, category=cat)
 
         # Set the price
-        self._create_stockrecord(item, 'Склад по умолчанию', upc, price)  # use one stock how main for sales
+        self._create_stockrecord(item, 'Склад по змовчуванню', upc, price)  # use one stock how main for sales
 
         # region 'image'
         c = urllib3.PoolManager()
