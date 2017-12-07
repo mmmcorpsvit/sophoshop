@@ -12,11 +12,12 @@ import logging
 
 from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
+from django.core import management
 # from oscar.core.loading import get_class
 
 # from decimal import Decimal as D
 
-# from django.db.transaction import atomic
+from django.db.transaction import atomic
 # from django.db import transaction
 # from django.utils.translation import ugettext_lazy as _
 # from django.db.transaction import atomic
@@ -50,7 +51,7 @@ ProductImage = get_model('catalogue', 'productimage')
 logger = logging.getLogger('oscar.catalogue.import')
 urllib3.disable_warnings()
 
-# use: sophoshop_import_from_xls_prom export-products.xlsx --flush --add_images
+# use: sophoshop_import_from_xls_prom export-products.xlsx --flush --rebuild_index --add_images
 # must be in _private/ImageMagic/convert.exe from ImagePagic Portable
 
 
@@ -92,41 +93,78 @@ def download(c, url, filename):
 class Impxls(object):
     _flush = False
     _add_images = False
+    _rebuild_index = False
+    _csv1 = None
+    _csv2 = None
 
-    def __init__(self, logger2, flush=False, add_images=False):
+    def __init__(self, logger2, flush=False, add_images=False, rebuild_index=False):
         self.logger = logger2
         self._flush = flush
         self._add_images = add_images
+        self._rebuild_index = rebuild_index
+        self._csv1 = open('attr1.csv', 'w')
+        self._csv2 = open('attr2.csv', 'w')
 
-    def _create_item(self, row, product_class_name, manufactur, category_str, upc, title, description, images_urls,
-                     price, stats):
+    def _create_item(self, row, product_class_name, brand, country_manufactur,
+                     category_str, upc, title, description, images_urls,
+                     price, attr_list, stats):
         # Ignore any entries that are NULL
         if description == 'NULL':
             description = ''
 
         # Create item class and item
         # product_class, __ = ProductClass.objects.get_or_create(name=product_class_name, track_stock=False)
-        klass, __ = ProductClass.objects.get_or_create(name=product_class_name,
-                                                       track_stock=False)
+        klass, __ = ProductClass.objects.get_or_create(name=product_class_name, track_stock=False)
+
+        # from Solr search, schema.xml
+        # <dynamicField name="*_i"  type="int"    indexed="true"  stored="true"/>
+        # <dynamicField name="*_s"  type="string"  indexed="true"  stored="true"/>
+        # <dynamicField name="*_l"  type="long"   indexed="true"  stored="true"/>
+        # <dynamicField name="*_t"  type="text_en"    indexed="true"  stored="true"/>
+        # <dynamicField name="*_b"  type="boolean" indexed="true"  stored="true"/>
+        # <dynamicField name="*_f"  type="float"  indexed="true"  stored="true"/>
+        # <dynamicField name="*_d"  type="double" indexed="true"  stored="true"/>
+        # <dynamicField name="*_dt" type="date" indexed="true" stored="true"/>
+        # <dynamicField name="*_p" type="location" indexed="true" stored="true"/>
+        # <dynamicField name="*_coordinate"  type="tdouble" indexed="true"  stored="false"/>
 
         ProductAttribute.objects.get_or_create(  # create and/or get created class
             product_class=klass,
             name='Виробник',    # text in admin
             required=False,
-            code='vendor',      # name in DB
+            code='brand_s',    # name in DB (use bootom connemt sufix)
             type='text',        # type
             )
 
-        item = Product(product_class=klass)     # inherit from class!
-        item.upc = upc
-        item.title = title
-        item.description = description
-        item.attr.vendor = manufactur         # Set attributes
+        ProductAttribute.objects.get_or_create(
+            product_class=klass,
+            name='Країна виробник',
+            required=False,
+            code='country_manufactur_s',
+            type='text',
+            )
 
-        if not (price is None):
-            item.price = price
+        # dymanic create attributes
+
+        item = Product(product_class=klass,  # inherit from class!
+                       title=title,
+                       upc=upc,
+                       description=description,
+                       )
+        # if not (price is None):
+        #     item.price = price
+
+        item.price = price
+
+        # Set attributes
+        item.attr.brand_s = brand
+        item.attr.country_manufactur_s = country_manufactur
 
         item.save()
+
+        for el in attr_list:
+            pass
+
 
         # Associate with a category
         cat = create_from_breadcrumbs(category_str)
@@ -197,6 +235,7 @@ class Impxls(object):
         # stock.num_in_stock = num_in_stock
         stock.save()
 
+    @atomic
     def _flush_product_data(self):
         """Flush out product and stock models"""
         logger.info('Flush start')
@@ -204,6 +243,7 @@ class Impxls(object):
         Category.objects.all().delete()
         Product.objects.all().delete()
         ProductClass.objects.all().delete()
+        ProductAttribute.objects.all().delete()
         Partner.objects.all().delete()
         StockRecord.objects.all().delete()
         AttributeOptionGroup.objects.all().delete()
@@ -231,8 +271,8 @@ class Impxls(object):
         for row in wb.rows:
             index += 1
 
-            if index > 50:
-                break
+            # if index > 50:
+            #     break
 
             # if index < 71:
             #    continue
@@ -265,30 +305,61 @@ class Impxls(object):
                 .replace('Дитячі дивани', 'Дивани') \
                 .replace('Кутові дивани', 'Дивани') \
                 .replace('Прямі дивани', 'Дивани')
-
             cats[cat] = None
 
-            self._create_item(
-                # product_class=str(row[16].value).replace('https://prom.ua/', ''),
-                row,
-                product_class_name=cat,
-                manufactur=str(row[24].value),
-                category_str=cat,
-                upc=str(row[20].value),
-                title=str(row[1].value).strip(),
-                description=description,
-                price=price,
-                stats=stats,
-                images_urls=str(row[11].value),
-            )
+            brand = str(row[24].value) \
+                .replace('Скиф', 'Скіф') \
+                .replace('Тиса мебель', 'Тиса меблі') \
+                .replace('Елисеевская мебель', 'Єлисеївські меблі') \
+                .replace('Микс мебель', 'Мікс меблі') \
+                .replace('Мелитополь мебель', 'Мелітополь меблі')
+
+            country_manufactur = str(row[26].value) \
+                .replace('Украина', 'Україна')
+
+            some_list = row[30:]
+
+            # get list of tuples(name, value)
+            # use step by 1
+            attrs_list = [(str(row[1].value),
+                           str(val.value),
+                           str(some_list[idx+1].value),
+                           str(some_list[idx+2].value))
+                          for idx, val in enumerate(some_list)
+                          if idx % 3 == 0 and val.value is not None and some_list[idx+2].value is not None]
+
+            for e in attrs_list:
+                s = e[0]+'\t'+e[1]+'\t'+e[2] + '\t'+e[3] + '\n'
+                self._csv1.writelines(s)
+                # self._csv += e[0]+'\t'+e[1]+'\t'+e[2]+'\n'
+
+            # self._create_item(
+            #     # product_class=str(row[16].value).replace('https://prom.ua/', ''),
+            #     row,
+            #     product_class_name=cat,
+            #     brand=brand,
+            #     country_manufactur=country_manufactur,
+            #     category_str=cat,
+            #     upc=str(row[20].value),
+            #     title=str(row[1].value).strip(),
+            #     description=description,
+            #     price=price,
+            #     stats=stats,
+            #     images_urls=str(row[11].value),
+            #     attr_list=attrs_list,
+            # )
 
             # logger.info('[%i/%i] %s ' % (row.index, wb.rows.count, row[1].value))
             logger.info('[%i/%i] [%s] %s' % (index - 1, wb.max_row, cat, row[1].value,))
             # logger.info(row[1].value)
 
+        # call rebuild search index
+        if self._rebuild_index:
+            management.call_command('rebuild_index', '--noinput', verbosity=0, interactive=False)
+
         msg = "New items: %d, updated items: %d" % (stats['new_items'],
                                                     stats['updated_items'])
-        self.logger.info(msg)
+        # self.logger.info(msg)
         self.logger.info(cats)
 
 
@@ -313,13 +384,21 @@ class Command(BaseCommand):
             default=False,
             help='Process images importing')
 
+        parser.add_argument(
+            '--rebuild_index',
+            action='store_true',
+            dest='rebuild_index',
+            default=False,
+            help='Rebuild search engine index process')
+
     def handle(self, *args, **options):
         logger.info("Starting catalogue import")
 
         for file_path in options['filename']:
             logger.info(" - Importing records from '%s'" % file_path)
             try:
-                xls = Impxls(logger, flush=options.get('flush'), add_images=options.get('add_images'))
+                xls = Impxls(logger, flush=options.get('flush'), add_images=options.get('add_images'),
+                             rebuild_index=options.get('rebuild_index'))
                 xls.handle(file_path)
 
             except ImportingError as e:

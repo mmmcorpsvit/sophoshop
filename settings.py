@@ -334,9 +334,9 @@ MESSAGE_TAGS = {
 # Here's a sample Haystack config if using Solr (which is recommended)
 HAYSTACK_CONNECTIONS = {
    'default': {
-       'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-       'URL': 'http://127.0.0.1:8984/solr/%s/' % DEV_APP_NAME,
-       'INCLUDE_SPELLING': True,
+       # 'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
+       # 'URL': 'http://127.0.0.1:8984/solr/%s/' % DEV_APP_NAME,
+       # 'INCLUDE_SPELLING': True,
    },
 }
 
@@ -401,7 +401,7 @@ OSCAR_ORDER_STATUS_CASCADE = {
 # ========
 # We default to using CSS files, rather than the LESS files that generate them.
 # If you want to develop Oscar's CSS, then set USE_LESS=True to enable the on-the-fly less processor.
-USE_LESS = False
+OSCAR_USE_LESS = False
 # endregion
 
 # region 'Sentry'
