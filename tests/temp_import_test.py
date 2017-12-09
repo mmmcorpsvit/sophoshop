@@ -1,6 +1,7 @@
 from openpyxl import load_workbook
 import xmlrpc.client as xmlrpclib
 import environ
+import base64
 
 # import os
 # from os import rename
@@ -9,6 +10,12 @@ import environ
 # import zlib
 # import shutil
 # import tempfile
+
+
+def convert_image(fn):
+    with open(fn, "rb") as image_file:
+        return base64.b64encode(image_file.read())
+
 
 env = environ.Env()
 out = print
@@ -240,7 +247,7 @@ class Impxls(object):
             out(e)
 
 
-c = Impxls()
+# c = Impxls()
 # c.handle('export-products.xlsx')
 
 
@@ -327,37 +334,102 @@ class ImportToOdd:
         self._cats = result
         return result
 
-    def create_item(self, lst):
+    def unlink_item(self):
+        l2 = [10, 11, 20, 26, 21]
+
+        # check if the deleted record is still in the database
+        lst3 = self._models_objects.execute_kw(
+            self._db, self._uid, self._password,
+            'product.template',
+            'search',
+            [
+                [
+                    ['id', 'not in', l2]
+                ]
+            ]
+        )
+
+        for e2 in lst3:
+            lst2 = self._models_objects.execute_kw(
+                self._db, self._uid, self._password,
+                'product.template',
+                'unlink',
+                [e2])
+
+        out('\n==unlink items==')
+        out('count: %i' % len(lst3))
+        pass
+
+    def unlink_attributes(self):
+        l2 = [1, 2, 3, 22]
+
+        attribute_id = self._models_objects.execute_kw(
+            self._db, self._uid, self._password,
+            'product.attribute',  # model (just see param model in admin side URL)
+            'search_read',  # operation
+            [[
+                # conditions
+                # ['parent_id', 'in', [False, ]],  # one item
+                ['id', 'in', l2],  # item in set
+              ],
+
+                ['id']  # fields list
+             ]
+            )
+
+        pass
+
+
+
+
+
+    def create_attribute(self, sname, svalue):
+        attribute_id = self._models_objects.execute_kw(
+            self._db, self._uid, self._password,
+            'product.attribute',  # model (just see param model in admin side URL)
+            'search_read',  # operation
+            [[
+                # conditions
+                # ['parent_id', 'in', [False, ]],  # one item
+                ['name', 'in', [sname]],  # item in set
+              ],
+
+                ['id']  # fields list
+             ]
+            )
+
+
+        pass
+
+    def create_item(self, item):
         """
         Create in from lst
-        :param lst: list of dict(name, cat_name, price, desc)
+        :param item: list of dict(name, cat_name, price, desc)
         :return:
         """
-        i = 0
-        cnt = len(lst)
+        # for e in lst:
+        # i += 1
+        categ_id = int(self._cats[item['cat_name']])
+        sname = item['name']
 
-        # create
-        out('\n==products==')
-        for e in lst:
-            i += 1
-            categ_id = int(self._cats[e['cat_name']])
-            sname = e['name']
+        product_id = self._models_objects.execute_kw(
+                self._db, self._uid, self._password,
+                'product.template', 'create',
+                [{
+                   'name': sname,
+                   'price': item['price'],
+                   'categ_id': 6,  # All / Можна продавати / Physical
+                   # 'default_code': '1111',
+                   'public_categ_ids': [[6, 0, [categ_id]]],
+                   # 'description_sale': 'super_puper_long',
+                   'website_description': item['desc'],
+                   'website_published': True,
+                   'image': item['image'],
+                }]
+                )
+        pass
 
-            product_id = self._models_objects.execute_kw(
-                    self._db, self._uid, self._password,
-                    'product.template', 'create',
-                    [{
-                       'name': sname,
-                       'price': e['price'],
-                       'public_categ_id': categ_id,
-                       # 'description_sale': 'super_puper_long',
-                       'website_description': e['desc'],
-                       'website_published': True,
-                       # 'image': None,
-                    }]
-                    )
-
-            out('[%i/%i] [id: %i] [%s] ' % (i, cnt, product_id, sname,))
+        # out('[id: %i] [%s] ' % (product_id, sname,))
 
     def test(self):
         # just see in Firefox + F12 debug, template + method + params
@@ -382,7 +454,13 @@ list_2 = [
      'price': 99,
      'cat_name': 'диван',
      'desc': 'super duper divan',
-     # 'cat_name': 'диван',
+     'image': '/9j/4AAQSkZJRgABAQEBLAEsAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABLAGQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDaSPHWpVIXrzTRijFd7Z8+oWJ1cdl/OniQ+uPpVdTUygnpUNmsVcfml3GmfMP4TxSDJ6Url8jJlfHenh81CqnvVlI/WpbNIxYqgtUyoF60zO3gClBYjIIpXLUSXfSb6iyR1pM0h3ZN5lFRUUCuzEVvWn5psILDkDNSiMg8g03ViZrDT7DVzUqMVOaarITjcM1OqZqHVTNoYeSZJA43fNzmpzDGRno3aoEUA4NWFAx3rGU0nc7YQbjZobs24LCp0KhQzHNM6nlc0hG0cdDUyqX0LhRSdyycMuDg8cVCML0HNLGxAwelKQM8URlbQKkb6gy7xxxTDEV7VMoIHNBzTVSxMqKav1K+KKl4oqvaoy9gzCmi2j7pB9arTa7p9gPJvrhYpOv3WJP5CtYgM3zdKqXdrDKpjlijkQ/wuuRXnKok9T1XC60KA1fSbzDW97EW9G+Qn88Vc/tC0tQv2i6iTJ4BbOax7vwrp8/zW4a2c/3TlfyP9K5670TUNPG6aEtGP44+VH19PxrZTjLZmXs2t0em09TxmuAstf1WAAfaTIo7SKG/XrVi41K+1FgsrnDHAjQYH5d6lytuUqbOqudbsbckGXzW7iPn9elFhrdvf3At44ZgxBOSBgfXms2w8Mu2HvpNg/uLyfxNdDa2cFomy3iWMd8dT9TS5waSJgvpS4xQBinUc5FhM+lHWlxSYqlIloTaKKdj2oo5gMgHBzXOa/rs0EEiQWt/BIp+WdoAUP4muhBpSFdSjgMrDBBHBFc8ZK92jfU4mx8YXONlxbpO/RSnykn6c1ZeDxDrbDzIHih7K37tR+B5P61vQ6Dp0WqR38MIikjXARAFTPTOPWtpTmqlOK1SBNnITeGpbPT5bme5QugB2KDjqO//ANarvhnT5jcx3TQAw84Zj39QK6R4o5kMUy7kbqD3qeNVRAqKFUDAAGAKlS5huTSsSYFKBQKeBVJXMWxu2jbUm2jbVcpNyPFLTsUhpgJRRiigdjn1JIxin5xUaDGMVJ3NcEajud0oJDlYVLHJ2/WoVqRapyuZ2sW0YGp1Oaqx1YjqoszkWFqUCokqZa6oHPIXFBFLRW3KQRkU0ipDTDUuJaGUUUVnYo//2Q==',
+
+     'attributes': {
+        'цвет': 'красный',
+        'форма': 'квадрат',
+        'материал': 'бук',
+        }
      },
 
     {'name': 'бозен2',
@@ -390,6 +468,7 @@ list_2 = [
      'cat_name': 'диван',
      'desc': 'super duper divan2',
      # 'cat_name': 'диван',
+     'image': '',
      },
 
 
@@ -400,7 +479,25 @@ im = ImportToOdd('http://localhost:8069',
                  env('user'),
                  env('pwd'))
 im.connect()
+
+# im.test()
+
+im.unlink_attributes()
+
+im.create_attribute('форма', 'квадрат')
+
+
 cats = im.create_categories(list_1)
 
-im.create_item(list_2)
-# im.test()
+
+im.unlink_item()
+
+out('\n==products==')
+i = 0
+for e in list_2:
+    i += 1
+    out('[%i/%i] [%s]' % (i, len(list_2), e['name'],))
+    im.create_item(e)
+
+
+
