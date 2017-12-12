@@ -273,11 +273,8 @@ class ImportToOdd:
         out(cv)
 
         self._uid = self._common_objects.authenticate(self._db, self._username, self._password, {})
-        if not self._uid:
-            Exception('Authorization error')
-        else:
-            out('Authorization succes, uid: %s' % self._uid)
 
+        out('Authorization succes, uid: %s' % self._uid)
         self._models_objects = xmlrpclib.ServerProxy('%sobject' % rpc)
 
     def create_categories(self, lst):
@@ -361,7 +358,7 @@ class ImportToOdd:
         pass
 
     def unlink_attributes(self):
-        l2 = [1, 2, 3, 22]
+        l2 = [1, 2, 3]
 
         attribute_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
@@ -370,20 +367,24 @@ class ImportToOdd:
             [[
                 # conditions
                 # ['parent_id', 'in', [False, ]],  # one item
-                ['id', 'in', l2],  # item in set
+                ['id', 'not in', l2],  # item in set
               ],
 
                 ['id']  # fields list
              ]
             )
 
+        for e2 in attribute_id:
+            lst2 = self._models_objects.execute_kw(
+                self._db, self._uid, self._password,
+                'product.attribute',
+                'unlink',
+                [e2])
+
         pass
 
-
-
-
-
     def create_attribute(self, sname, svalue):
+        # search attribute
         attribute_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.attribute',  # model (just see param model in admin side URL)
@@ -398,8 +399,49 @@ class ImportToOdd:
              ]
             )
 
+        # create attribute if not exists
+        if not attribute_id:
+            attribute_id = self._models_objects.execute_kw(
+                self._db, self._uid, self._password,
+                'product.attribute',
+                'create',
+                [{
+                    'name': sname,
+                }]
+            )
 
-        pass
+        id = attribute_id[0]['id']
+
+        # search attribute value
+        value_attribute_id = self._models_objects.execute_kw(
+            self._db, self._uid, self._password,
+            'product.attribute.value',  # model (just see param model in admin side URL)
+            'search_read',  # operation
+            [[
+                # conditions
+                # ['parent_id', 'in', [False, ]],  # one item
+                ['attribute_id', 'in', [id]],
+                ['name', 'in', [svalue]],  # item in set
+              ],
+
+                # ['id']  # fields list
+             ]
+            )
+
+        # create attribute if not exists
+        if not value_attribute_id:
+            value_attribute_id = self._models_objects.execute_kw(
+                self._db, self._uid, self._password,
+                'product.attribute.value',
+                'create',
+                [{
+                    'attribute_id': id,
+                    'name': svalue,
+                    # 'html_color': False,
+                }]
+            )
+
+        return value_attribute_id
 
     def create_item(self, item):
         """
@@ -427,7 +469,13 @@ class ImportToOdd:
                    'image': item['image'],
                 }]
                 )
-        pass
+
+        # add attributes (pnly if have his)
+        if hasattr(item, 'attributes'):
+            attr = item['attributes']
+            for e in attr:
+                self.create_attribute(e, attr[e])
+
 
         # out('[id: %i] [%s] ' % (product_id, sname,))
 
@@ -475,22 +523,20 @@ list_2 = [
 ]
 
 im = ImportToOdd('http://localhost:8069',
-                 'shop',
+                 'shop2',
                  env('user'),
                  env('pwd'))
 im.connect()
 
 # im.test()
-
-im.unlink_attributes()
-
-im.create_attribute('форма', 'квадрат')
+# im.unlink_attributes()
+# im.create_attribute('форма', 'квадрат')
 
 
 cats = im.create_categories(list_1)
 
 
-im.unlink_item()
+# im.unlink_item()
 
 out('\n==products==')
 i = 0
