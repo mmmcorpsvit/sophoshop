@@ -475,7 +475,7 @@ class ImportToOdd:
             self._db, self._uid, self._password,
             'product.template', 'create',
             [{
-                'name': sname+'18',
+                'name': sname+'19',
                 'price': item['price'],
                 'categ_id': 6,  # All / Можна продавати / Physical
                 # 'default_code': '1111',
