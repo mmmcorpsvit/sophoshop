@@ -466,28 +466,16 @@ class ImportToOdd:
                 pass
                 # self.create_attribute(e, attr[e])
 
-        atrrs_lines = [
-                0,
-                False,
-                {'attribute_id': 3,
-                 'value_ids': [
-                     6,
-                     False,
-                     [5]
-                 ]
-                 }
-            ]
-
-        atrrs_lines = [(0, 0,   # what it is?
-                       {'attribute_id': 3,  # attribute id
-                        'value_ids': [(4, 10), ]},  # (unknown, id_value)
-                        )]
+        atrrs_lines += [(0, 0,   # what it is?
+                        {'attribute_id': 3,  # attribute id
+                         'value_ids': [(4, 2), ]},  # [(unknown ???, value_ids)]
+                         )]
 
         product_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.template', 'create',
             [{
-                'name': sname+'16',
+                'name': sname+'18',
                 'price': item['price'],
                 'categ_id': 6,  # All / Можна продавати / Physical
                 # 'default_code': '1111',
