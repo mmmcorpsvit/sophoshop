@@ -1,7 +1,10 @@
+import datetime
+
 from openpyxl import load_workbook
 import xmlrpc.client as xmlrpclib
 import environ
 import base64
+
 
 # import os
 # from os import rename
@@ -95,7 +98,7 @@ class Impxls(object):
                 .replace("Дерев'яні ліжка", 'Ліжка') \
                 .replace("Дитячі ліжка", 'Ліжка') \
                 .replace('Столи', 'Столи гостьові') \
-                .replace('Столи гостьові-трансформери', 'Столи журнальні')\
+                .replace('Столи гостьові-трансформери', 'Столи журнальні') \
                 .replace('Стільці', 'Стільці та табурети') \
                 .replace('Дитячі дивани', 'Дивани') \
                 .replace('Кутові дивани', 'Дивани') \
@@ -122,7 +125,7 @@ class Impxls(object):
                 'Подушки',
                 'Наматрацники і підматрацники',
                 'Футони і топери',
-                 ]:
+            ]:
                 # extra_attr_dict['Гарантыя'] = '18'  # просто добавляем в словарь без типов данных
                 extra_attr_dict['Гарантія'] = ['int', '18']
 
@@ -139,9 +142,9 @@ class Impxls(object):
             #    continue
 
             sname = sname \
-                .strip()\
-                .replace('"', '')\
-                .replace('  ', ' ')\
+                .strip() \
+                .replace('"', '') \
+                .replace('  ', ' ') \
                 .replace('*', 'x')
             out('[%i/%i] %s' % (index, total_count, sname))
 
@@ -151,11 +154,11 @@ class Impxls(object):
 
             # region 'convert work'
             attrs_list0 = [[sname,
-                           str(val.value).strip(),
-                           str(some_list[idx+1].value).strip(),
-                           str(some_list[idx+2].value).strip()
-                            .replace('.0', '')
-                            .replace('*', 'x')
+                            str(val.value).strip(),
+                            str(some_list[idx + 1].value).strip(),
+                            str(some_list[idx + 2].value).strip()
+                                .replace('.0', '')
+                                .replace('*', 'x')
                             ]
                            for idx, val in enumerate(some_list)
                            if idx % 3 == 0
@@ -164,14 +167,14 @@ class Impxls(object):
             # skip ignored attributes
             attrs_list1 = [e for e in attrs_list0
                            if e[1] not in CON_IGNORE_ATTRS
-                           and not(e[1] == 'Цвет' and e[3] == 'Разные цвета')
-                           and not(e[1] == 'Розмір' and e[3] == '7000')
-                           and not(e[1] == 'Состояние' and e[3] == 'Новое')
-                           and not(e[1] == 'Тип' and e[3] == 'Для сна')
-                           and not(e[1] == 'Цвет' and e[3] == 'Белый')
-                           and not(e[1] == 'Цвет' and e[3] == 'Разные цвета')
-                           and not(e[1] == 'Цвет обивки' and e[3] == 'Разные цвета')
-                           and not(e[1] == 'Тип крепления к матрасу' and e[3] == 'четыре резинки по углам')
+                           and not (e[1] == 'Цвет' and e[3] == 'Разные цвета')
+                           and not (e[1] == 'Розмір' and e[3] == '7000')
+                           and not (e[1] == 'Состояние' and e[3] == 'Новое')
+                           and not (e[1] == 'Тип' and e[3] == 'Для сна')
+                           and not (e[1] == 'Цвет' and e[3] == 'Белый')
+                           and not (e[1] == 'Цвет' and e[3] == 'Разные цвета')
+                           and not (e[1] == 'Цвет обивки' and e[3] == 'Разные цвета')
+                           and not (e[1] == 'Тип крепления к матрасу' and e[3] == 'четыре резинки по углам')
                            ]
 
             # attrs_list2 = []
@@ -192,7 +195,7 @@ class Impxls(object):
                                      'Глубина',
                                      'Ширина стола',
                                      ]:
-                    e[3] = str(int(e[3])/10).replace('.0', '')
+                    e[3] = str(int(e[3]) / 10).replace('.0', '')
                     e[2] = 'см'
 
                 if e[2] in ['см', 'кг', 'шт.']:
@@ -293,11 +296,11 @@ class ImportToOdd:
                 # conditions
                 ['parent_id', 'in', [False, ]],  # one item
                 ['name', 'in', lst],  # item in set
-              ],
+            ],
 
                 ['id']  # fields list
-             ]
-            )
+            ]
+        )
 
         # delete
         ids = []
@@ -368,11 +371,11 @@ class ImportToOdd:
                 # conditions
                 # ['parent_id', 'in', [False, ]],  # one item
                 ['id', 'not in', l2],  # item in set
-              ],
+            ],
 
                 ['id']  # fields list
-             ]
-            )
+            ]
+        )
 
         for e2 in attribute_id:
             lst2 = self._models_objects.execute_kw(
@@ -393,11 +396,11 @@ class ImportToOdd:
                 # conditions
                 # ['parent_id', 'in', [False, ]],  # one item
                 ['name', 'in', [sname]],  # item in set
-              ],
+            ],
 
                 ['id']  # fields list
-             ]
-            )
+            ]
+        )
 
         # create attribute if not exists
         if not attribute_id:
@@ -422,11 +425,11 @@ class ImportToOdd:
                 # ['parent_id', 'in', [False, ]],  # one item
                 ['attribute_id', 'in', [id]],
                 ['name', 'in', [svalue]],  # item in set
-              ],
+            ],
 
                 # ['id']  # fields list
-             ]
-            )
+            ]
+        )
 
         # create attribute if not exists
         if not value_attribute_id:
@@ -454,30 +457,82 @@ class ImportToOdd:
         categ_id = int(self._cats[item['cat_name']])
         sname = item['name']
 
-        product_id = self._models_objects.execute_kw(
-                self._db, self._uid, self._password,
-                'product.template', 'create',
-                [{
-                   'name': sname,
-                   'price': item['price'],
-                   'categ_id': 6,  # All / Можна продавати / Physical
-                   # 'default_code': '1111',
-                   'public_categ_ids': [[6, 0, [categ_id]]],
-                   # 'description_sale': 'super_puper_long',
-                   'website_description': item['desc'],
-                   'website_published': True,
-                   'image': item['image'],
-                }]
-                )
-
-        # add attributes (pnly if have his)
-        if hasattr(item, 'attributes'):
+        # add attributes (only if have his)
+        atrrs_lines = []
+        # if hasattr(item, 'attributes'):
+        if 1 == 1:
             attr = item['attributes']
             for e in attr:
-                self.create_attribute(e, attr[e])
+                pass
+                # self.create_attribute(e, attr[e])
 
+        atrrs_lines = [
+                0,
+                False,
+                {'attribute_id': 3,
+                 'value_ids': [
+                     6,
+                     False,
+                     [5]
+                 ]
+                 }
+            ]
 
-        # out('[id: %i] [%s] ' % (product_id, sname,))
+        atrrs_lines = [(0, 0,   # what it is?
+                       {'attribute_id': 3,  # attribute id
+                        'value_ids': [(4, 10), ]},  # (unknown, id_value)
+                        )]
+
+        product_id = self._models_objects.execute_kw(
+            self._db, self._uid, self._password,
+            'product.template', 'create',
+            [{
+                'name': sname+'16',
+                'price': item['price'],
+                'categ_id': 6,  # All / Можна продавати / Physical
+                # 'default_code': '1111',
+                'public_categ_ids': [[6, 0, [categ_id]]],
+                # 'description_sale': 'super_puper_long',
+                'website_description': item['desc'],
+                'website_published': True,
+                'image': item['image'],
+                'attribute_line_ids': atrrs_lines,
+            }]
+        )
+
+        out('[id: %i] [%s] ' % (product_id, sname,))
+
+    def set_attributes_for_item(self, id_item, attributes_list):
+        id_item = 42
+        attributes_list = [
+            [{'attribute_id': 7,
+              'values_ids': [9]}],
+            # [],
+        ]
+
+        product_id = self._models_objects.execute_kw(
+            self._db, self._uid, self._password,
+            'product.template',
+            'write',
+            [65,
+             {'attribute_line_ids': [
+                [
+                    0,
+                    False,
+                    {'attribute_id': 1,
+                     'value_ids': [
+                                6,
+                                False,
+                                [1]
+                            ]
+                     }
+                 ],
+             ]}],
+            # [],
+            #    'attribute_line_ids': attributes_list,
+        )
+
+        pass
 
     def test(self):
         # just see in Firefox + F12 debug, template + method + params
@@ -490,7 +545,7 @@ class ImportToOdd:
                 10,
                 # product_id,
             ]
-            )[0]
+        )[0]
 
         pass
 
@@ -505,10 +560,10 @@ list_2 = [
      'image': '/9j/4AAQSkZJRgABAQEBLAEsAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABLAGQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDaSPHWpVIXrzTRijFd7Z8+oWJ1cdl/OniQ+uPpVdTUygnpUNmsVcfml3GmfMP4TxSDJ6Url8jJlfHenh81CqnvVlI/WpbNIxYqgtUyoF60zO3gClBYjIIpXLUSXfSb6iyR1pM0h3ZN5lFRUUCuzEVvWn5psILDkDNSiMg8g03ViZrDT7DVzUqMVOaarITjcM1OqZqHVTNoYeSZJA43fNzmpzDGRno3aoEUA4NWFAx3rGU0nc7YQbjZobs24LCp0KhQzHNM6nlc0hG0cdDUyqX0LhRSdyycMuDg8cVCML0HNLGxAwelKQM8URlbQKkb6gy7xxxTDEV7VMoIHNBzTVSxMqKav1K+KKl4oqvaoy9gzCmi2j7pB9arTa7p9gPJvrhYpOv3WJP5CtYgM3zdKqXdrDKpjlijkQ/wuuRXnKok9T1XC60KA1fSbzDW97EW9G+Qn88Vc/tC0tQv2i6iTJ4BbOax7vwrp8/zW4a2c/3TlfyP9K5670TUNPG6aEtGP44+VH19PxrZTjLZmXs2t0em09TxmuAstf1WAAfaTIo7SKG/XrVi41K+1FgsrnDHAjQYH5d6lytuUqbOqudbsbckGXzW7iPn9elFhrdvf3At44ZgxBOSBgfXms2w8Mu2HvpNg/uLyfxNdDa2cFomy3iWMd8dT9TS5waSJgvpS4xQBinUc5FhM+lHWlxSYqlIloTaKKdj2oo5gMgHBzXOa/rs0EEiQWt/BIp+WdoAUP4muhBpSFdSjgMrDBBHBFc8ZK92jfU4mx8YXONlxbpO/RSnykn6c1ZeDxDrbDzIHih7K37tR+B5P61vQ6Dp0WqR38MIikjXARAFTPTOPWtpTmqlOK1SBNnITeGpbPT5bme5QugB2KDjqO//ANarvhnT5jcx3TQAw84Zj39QK6R4o5kMUy7kbqD3qeNVRAqKFUDAAGAKlS5huTSsSYFKBQKeBVJXMWxu2jbUm2jbVcpNyPFLTsUhpgJRRiigdjn1JIxin5xUaDGMVJ3NcEajud0oJDlYVLHJ2/WoVqRapyuZ2sW0YGp1Oaqx1YjqoszkWFqUCokqZa6oHPIXFBFLRW3KQRkU0ipDTDUuJaGUUUVnYo//2Q==',
 
      'attributes': {
-        'цвет': 'красный',
-        'форма': 'квадрат',
-        'материал': 'бук',
-        }
+         'цвет': 'красный',
+         'форма': 'квадрат',
+         'материал': 'бук',
+     }
      },
 
     {'name': 'бозен2',
@@ -518,7 +573,6 @@ list_2 = [
      # 'cat_name': 'диван',
      'image': '',
      },
-
 
 ]
 
@@ -532,9 +586,8 @@ im.connect()
 # im.unlink_attributes()
 # im.create_attribute('форма', 'квадрат')
 
-
+# im.set_attributes_for_item(None, None)
 cats = im.create_categories(list_1)
-
 
 # im.unlink_item()
 
@@ -544,6 +597,3 @@ for e in list_2:
     i += 1
     out('[%i/%i] [%s]' % (i, len(list_2), e['name'],))
     im.create_item(e)
-
-
-
