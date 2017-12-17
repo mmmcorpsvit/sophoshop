@@ -1,11 +1,12 @@
-import datetime
+# -- encoding: utf8 --
 
 from openpyxl import load_workbook
 import xmlrpc.client as xmlrpclib
-import environ
+# import environ
+from environs import Env
 import base64
 
-
+# import datetime
 # import os
 # from os import rename
 # import tarfile
@@ -15,243 +16,13 @@ import base64
 # import tempfile
 
 
-def convert_image(fn):
+def base64_of_file(fn):
     with open(fn, "rb") as image_file:
         return base64.b64encode(image_file.read())
 
 
-env = environ.Env()
+env = Env()
 out = print
-
-# region 'conditions list const'
-CON_IGNORE_SNAME_STARTS = ['Тканини для асортименту "ТИСА-МЕБЛІ"',
-                           ]
-
-CON_IGNORE_ATTRS = ['Гарантийный срок',
-                    'Ручки для переноса',
-                    ]
-
-
-# endregion
-
-
-class Impxls(object):
-    _flush = False
-    _add_images = False
-    _rebuild_index = False
-    _csv1 = None
-    _csv2 = None
-
-    def __init__(self, flush=False, add_images=False, rebuild_index=False):
-        self._flush = flush
-        self._add_images = add_images
-        self._rebuild_index = rebuild_index
-        self._csv1 = open('attr1.csv', 'w')
-        self._csv2 = open('attr2.csv', 'w')
-
-    def handle(self, fn):
-        wb2 = load_workbook(fn, read_only=True)
-        # print('Spread sheats names: %s' % wb2.get_sheet_names())
-        wb = wb2.worksheets[0]
-
-        index = 0
-        cats = dict()
-        attr_dict = dict()
-
-        extra_attr_dict = dict()  # name, [type, value]
-
-        total_count = wb.max_row
-
-        for row in wb.rows:
-            extra_attr_dict.clear()
-            # region 'work'
-            index += 1
-
-            if index == 1:
-                continue
-
-            # if index < 103:
-            #     continue
-
-            # if index > 50:
-            #     break
-
-            v = row[5].value
-            price = int(v) if not (v is None) else 0
-
-            v = row[3].value
-            description = str(v) if not (v is None) else ''
-
-            cat_original = str(row[15].value)
-
-            cat = cat_original \
-                .replace('Матраци Sleep&Fly', 'Матраци') \
-                .replace('Матраци Evolution', 'Матраци') \
-                .replace('Матраци Sleep&fly Organic', 'Матраци') \
-                .replace('Матраци Take&Go Bamboо', 'Матраци') \
-                .replace('Take&Go', 'Матраци') \
-                .replace('Матраци Sleep&fly uno', 'Матраци') \
-                .replace('Матраци Doctor Health', 'Матраци') \
-                .replace('Дитячі матраци Herbalis KIDS', 'Матраци') \
-                .replace('Матраци на дивани', 'Футони і топери') \
-                .replace('Наматрацники', 'Наматрацники і підматрацники') \
-                .replace("Дерев'яні ліжка", 'Ліжка') \
-                .replace("Дитячі ліжка", 'Ліжка') \
-                .replace('Столи', 'Столи гостьові') \
-                .replace('Столи гостьові-трансформери', 'Столи журнальні') \
-                .replace('Стільці', 'Стільці та табурети') \
-                .replace('Дитячі дивани', 'Дивани') \
-                .replace('Кутові дивани', 'Дивани') \
-                .replace('Прямі дивани', 'Дивани') \
-                .strip()
-            cats[cat] = None
-
-            brand = str(row[24].value) \
-                .replace('Скиф', 'Скіф') \
-                .replace('Тиса мебель', 'Тиса меблі') \
-                .replace('Елисеевская мебель', 'Єлисеївські меблі') \
-                .replace('Микс мебель', 'Мікс меблі') \
-                .replace('Мелитополь мебель', 'Мелітополь меблі')
-
-            country_manufactur = str(row[26].value) \
-                .replace('Украина', 'Україна')
-
-            some_list = list(row[30:])
-
-            # add garanty 18 month attribute
-            if cat in [
-                'Матраци',
-                'Дивани',
-                'Подушки',
-                'Наматрацники і підматрацники',
-                'Футони і топери',
-            ]:
-                # extra_attr_dict['Гарантыя'] = '18'  # просто добавляем в словарь без типов данных
-                extra_attr_dict['Гарантія'] = ['int', '18']
-
-            sname = str(row[1].value)
-
-            # ignore some "with start" sname products
-            for e in CON_IGNORE_SNAME_STARTS:
-                if sname.startswith(e):
-                    sname = ''
-            if sname == '':
-                continue
-
-            # if sname.startswith('Тканини для асортименту "ТИСА-МЕБЛІ"'):
-            #    continue
-
-            sname = sname \
-                .strip() \
-                .replace('"', '') \
-                .replace('  ', ' ') \
-                .replace('*', 'x')
-            out('[%i/%i] %s' % (index, total_count, sname))
-
-            af = []
-            # get list of tuples(name_product, name_attr, name_counter, value)
-            # use step by 1
-
-            # region 'convert work'
-            attrs_list0 = [[sname,
-                            str(val.value).strip(),
-                            str(some_list[idx + 1].value).strip(),
-                            str(some_list[idx + 2].value).strip()
-                                .replace('.0', '')
-                                .replace('*', 'x')
-                            ]
-                           for idx, val in enumerate(some_list)
-                           if idx % 3 == 0
-                           and val.value is not None]
-
-            # skip ignored attributes
-            attrs_list1 = [e for e in attrs_list0
-                           if e[1] not in CON_IGNORE_ATTRS
-                           and not (e[1] == 'Цвет' and e[3] == 'Разные цвета')
-                           and not (e[1] == 'Розмір' and e[3] == '7000')
-                           and not (e[1] == 'Состояние' and e[3] == 'Новое')
-                           and not (e[1] == 'Тип' and e[3] == 'Для сна')
-                           and not (e[1] == 'Цвет' and e[3] == 'Белый')
-                           and not (e[1] == 'Цвет' and e[3] == 'Разные цвета')
-                           and not (e[1] == 'Цвет обивки' and e[3] == 'Разные цвета')
-                           and not (e[1] == 'Тип крепления к матрасу' and e[3] == 'четыре резинки по углам')
-                           ]
-
-            # attrs_list2 = []
-
-            # mm to sm
-            for idx, e in enumerate(attrs_list1):
-                if cat in ['Столи гостьові',
-                           'Стільці та табурети', ] \
-                        and e[1] in ['Глубина столика',
-                                     'Длина столика',
-                                     'Максимальная длина столешницы раскладного столика',
-                                     'Минимальная длина столешницы раскладного столика',
-                                     'Длина стола',
-                                     'Высота',
-                                     'Длина стола в раздвинутом (разложенном) состоянии',
-                                     'Длина стола в сдвинутом (сложенном) состоянии',
-                                     'Ширина',
-                                     'Глубина',
-                                     'Ширина стола',
-                                     ]:
-                    e[3] = str(int(e[3]) / 10).replace('.0', '')
-                    e[2] = 'см'
-
-                if e[2] in ['см', 'кг', 'шт.']:
-                    e[2] = 'int'
-
-                if e[3] in ['да', 'нет']:
-                    e[2] = 'bool'
-
-                    e[3] = e[3].replace('да', '1').replace('нет', '0')
-
-                # else string
-                # if e[2] == '':
-                #    e[2] = 'str'
-
-                # attrs_list2.append(result)
-
-            attrs_list = attrs_list1
-
-            # add extra data
-            for e in extra_attr_dict:
-                attrs_list.append([sname, e, extra_attr_dict[e][0], extra_attr_dict[e][1]])
-
-            # detect types of data
-
-            # endregion
-
-            for e in attrs_list:
-                s = '%s\t%s\t%s\t%s\n' % (e[0], e[1], e[2], e[3])
-                self._csv1.writelines(s)
-
-                # just for debug
-                attr_dict[e[1]] = ''
-                # self._csv += e[0]+'\t'+e[1]+'\t'+e[2]+'\n'
-
-            # print('[%i/%i] [%s] %s' % (index - 1, wb.max_row, cat, row[1].value,))
-
-            for e in attrs_list:
-                pass
-                # print(e[0])
-
-        self._csv1.close()
-        self._csv2.close()
-        wb2.close()
-
-        out('\n\n==Cats==')
-        for e in cats:
-            out(e)
-
-        out('\n\n==Attr_dict==')
-        # attr_dict.
-        for e in sorted(attr_dict):
-            out(e)
-
-
-# c = Impxls()
-# c.handle('export-products.xlsx')
 
 
 # http://www.odoo.com/documentation/10.0/api_integration.html
@@ -265,6 +36,7 @@ class ImportToOdd:
     def __init__(self, _srv, _db, _username, _password):
         self._srv, self._db, self._username, self._password = _srv, _db, _username, _password
         # self._cats = cats
+        self.connect()
 
     def connect(self):
         self._cats.clear()
@@ -277,61 +49,53 @@ class ImportToOdd:
 
         self._uid = self._common_objects.authenticate(self._db, self._username, self._password, {})
 
+        if not self._uid:
+            out('Authorization FAILED!')
+            exit(-1)
+
         out('Authorization succes, uid: %s' % self._uid)
         self._models_objects = xmlrpclib.ServerProxy('%sobject' % rpc)
 
-    def create_categories(self, lst):
+    def create_category(self, cat_name):
         """
-        ReCreate Categories list in root
-        :param lst: list of names categories
-        :return: dict(name, id)
+        ReCreate Categories list in root (use internal _self.cats for speed)
+        :param cat_name: list of names categories
+        :return: id
         """
-        result = dict()
-        # get cats list to delete
+        # already present in list?
+        if cat_name in self._cats:
+            return self._cats[cat_name]
+
+        # get cats list
         categories = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.public.category',  # model (just see param model in admin side URL)
             'search_read',  # operation
             [[
                 # conditions
-                ['parent_id', 'in', [False, ]],  # one item
-                ['name', 'in', lst],  # item in set
+                ['parent_id', 'in', [0, ]],  # one item
+                ['name', 'in', [cat_name]],  # item in set
             ],
-
                 ['id']  # fields list
             ]
         )
 
-        # delete
-        ids = []
-        for e in categories:
-            ids.append(e['id'])
+        # categories = [1, 2]
+        # category dont exists, create him
+        if len(categories) > 0:
+            tid = categories[0]['id']
+            self._cats[cat_name] = tid
+            return tid
 
-        self._models_objects.execute_kw(
+        # create
+        result = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.public.category',
 
-            # operation
-            'unlink',  # delete
-            [ids]  # from list of id's
+            'create',  # delete
+            [{'name': cat_name}]  # from list of id's
         )
-
-        # create
-        for e in list_1:
-            result[e] = self._models_objects.execute_kw(
-                self._db, self._uid, self._password,
-                'product.public.category',
-
-                # operation
-                'create',  # delete
-                [{'name': e}]  # from list of id's
-            )
-
-        out('\n==cats==')
-        for e in result:
-            out('%s: %i' % (e, result[e]))
-
-        self._cats = result
+        out('Create category: %s, id: %i' % (cat_name, result))
         return result
 
     def unlink_item(self):
@@ -386,18 +150,17 @@ class ImportToOdd:
 
         pass
 
-    def create_attribute(self, sname, svalue):
+    def create_attribute(self, attrs_lines, sname, svalue):
         # search attribute
+        # svalue = 'test2'
+        # region 'scroll'
         attribute_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.attribute',  # model (just see param model in admin side URL)
             'search_read',  # operation
             [[
-                # conditions
-                # ['parent_id', 'in', [False, ]],  # one item
                 ['name', 'in', [sname]],  # item in set
             ],
-
                 ['id']  # fields list
             ]
         )
@@ -412,9 +175,10 @@ class ImportToOdd:
                     'name': sname,
                 }]
             )
-
-        id = attribute_id[0]['id']
-
+            # attribute_id = attribute_id[0]['id']
+        else:
+            attribute_id = attribute_id[0]['id']
+        # endregion
         # search attribute value
         value_attribute_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
@@ -423,28 +187,36 @@ class ImportToOdd:
             [[
                 # conditions
                 # ['parent_id', 'in', [False, ]],  # one item
-                ['attribute_id', 'in', [id]],
+                ['attribute_id', 'in', [attribute_id]],
                 ['name', 'in', [svalue]],  # item in set
             ],
-
-                # ['id']  # fields list
+                ['id']  # fields list
             ]
         )
 
-        # create attribute if not exists
+        # create attribute value if not exists
         if not value_attribute_id:
             value_attribute_id = self._models_objects.execute_kw(
                 self._db, self._uid, self._password,
                 'product.attribute.value',
                 'create',
                 [{
-                    'attribute_id': id,
+                    'attribute_id': attribute_id,
                     'name': svalue,
                     # 'html_color': False,
                 }]
             )
+        else:
+            value_attribute_id = value_attribute_id[0]['id']
 
-        return value_attribute_id
+        attrs_lines += [
+            (0, 0,   # what it is?
+             {'attribute_id': attribute_id,  # attribute id
+              'value_ids': [(4, value_attribute_id), ]},  # [(unknown ???, value_ids)]
+             ),
+        ]
+
+        return attribute_id, value_attribute_id
 
     def create_item(self, item):
         """
@@ -454,37 +226,54 @@ class ImportToOdd:
         """
         # for e in lst:
         # i += 1
-        categ_id = int(self._cats[item['cat_name']])
+        # categ_id = int(self._cats[item['cat_name']])
+
+        # create_categories
+        # cat_name = item['cat_name']
+
+        cat_id = self.create_category(item['cat_name'])
         sname = item['name']
 
         # add attributes (only if have his)
-        atrrs_lines = []
-        # if hasattr(item, 'attributes'):
-        if 1 == 1:
-            attr = item['attributes']
-            for e in attr:
-                pass
-                # self.create_attribute(e, attr[e])
+        attrs_lines = []
+        try:
+            for ekey, evalue in item['attributes'].items():
+                self.create_attribute(attrs_lines, ekey, evalue)
+        except KeyError:
+            # pass
+            print('item: %s, dont have attributes!' % sname)
 
-        atrrs_lines += [(0, 0,   # what it is?
-                        {'attribute_id': 3,  # attribute id
-                         'value_ids': [(4, 2), ]},  # [(unknown ???, value_ids)]
-                         )]
+        # ********************
+        """
+        attrs_lines += [
+            (0, 0,   # what it is?
+             {'attribute_id': 3,  # attribute id
+              'value_ids': [(4, 5), ]},  # [(unknown ???, value_ids)]
+             ),
+
+            (0, 0,  # what it is?
+             {'attribute_id': 1,  # attribute id
+              'value_ids': [(4, 2), ]},  # [(unknown ???, value_ids)]
+             ),
+
+            ]
+        """
+        # ********************
 
         product_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.template', 'create',
             [{
-                'name': sname+'19',
+                'name': sname+'29',
                 'price': item['price'],
                 'categ_id': 6,  # All / Можна продавати / Physical
                 # 'default_code': '1111',
-                'public_categ_ids': [[6, 0, [categ_id]]],
+                'public_categ_ids': [[6, 0, [cat_id]]],
                 # 'description_sale': 'super_puper_long',
                 'website_description': item['desc'],
                 'website_published': True,
                 'image': item['image'],
-                'attribute_line_ids': atrrs_lines,
+                'attribute_line_ids': attrs_lines,
             }]
         )
 
@@ -538,8 +327,269 @@ class ImportToOdd:
         pass
 
 
+# region 'conditions list const'
+CON_IGNORE_SNAME_STARTS = ['Тканини для асортименту "ТИСА-МЕБЛІ"',
+                           ]
+
+CON_IGNORE_ATTRS = ['Гарантийный срок',
+                    'Ручки для переноса',
+                    ]
+# endregion
+
+
+class Impxls(object):
+    _flush = False
+    _add_images = False
+    _rebuild_index = False
+    _csv1 = None
+    _csv2 = None
+
+    def __init__(self, flush=False, add_images=False, rebuild_index=False):
+        self._flush = flush
+        self._add_images = add_images
+        self._rebuild_index = rebuild_index
+        self._csv1 = open('attr1.csv', 'w')
+        self._csv2 = open('attr2.csv', 'w')
+
+    def handle(self, fn):
+        wb2 = load_workbook(fn, read_only=True)
+        # print('Spread sheats names: %s' % wb2.get_sheet_names())
+        wb = wb2.worksheets[0]
+
+        index = 0
+        cats = dict()
+        attr_dict = dict()
+
+        extra_attr_dict = dict()  # name, [type, value]
+
+        total_count = wb.max_row
+
+        item = {}
+
+        empty_attrbitutes_values = {}
+
+        for row in wb.rows:
+            extra_attr_dict.clear()
+            # region 'work'
+            index += 1
+
+            if index == 1:
+                continue
+
+            # if index < 103:
+            #     continue
+
+            # if index > 50:
+            #     break
+
+            # index
+            item['index'] = index
+
+            # name
+            sname = str(row[1].value).strip() \
+                .replace('"', '') \
+                .replace('  ', ' ') \
+                .replace('*', 'x')
+            item['sname'] = sname
+            out('[%i/%i] %s' % (index, total_count, sname))
+
+            v = row[5].value
+            item['price'] = int(v) if not (v is None) else 0
+
+            v = row[3].value
+            item['description'] = str(v) if not (v is None) else ''
+
+            cat_original = str(row[15].value)
+
+            cat = cat_original \
+                .replace('Матраци Sleep&Fly', 'Матраци') \
+                .replace('Матраци Evolution', 'Матраци') \
+                .replace('Матраци Sleep&fly Organic', 'Матраци') \
+                .replace('Матраци Take&Go Bamboо', 'Матраци') \
+                .replace('Take&Go', 'Матраци') \
+                .replace('Матраци Sleep&fly uno', 'Матраци') \
+                .replace('Матраци Doctor Health', 'Матраци') \
+                .replace('Дитячі матраци Herbalis KIDS', 'Матраци') \
+                .replace('Матраци на дивани', 'Футони і топери') \
+                .replace('Наматрацники', 'Наматрацники і підматрацники') \
+                .replace("Дерев'яні ліжка", 'Ліжка') \
+                .replace("Дитячі ліжка", 'Ліжка') \
+                .replace('Столи', 'Столи гостьові') \
+                .replace('Столи гостьові-трансформери', 'Столи журнальні') \
+                .replace('Стільці', 'Стільці та табурети') \
+                .replace('Дитячі дивани', 'Дивани') \
+                .replace('Кутові дивани', 'Дивани') \
+                .replace('Прямі дивани', 'Дивани') \
+                .strip()
+
+            item['cat'] = cat
+            cats[cat] = None
+
+            # brand
+            tmp = str(row[24].value).strip()
+            tmp = tmp \
+                .replace('Скиф', 'Скіф') \
+                .replace('Тиса мебель', 'Тиса меблі') \
+                .replace('Елисеевская мебель', 'Єлисеївські меблі') \
+                .replace('Микс мебель', 'Мікс меблі') \
+                .replace('Мелитополь мебель', 'Мелітополь меблі')
+
+            if tmp == '':
+                tmp = 'Константа'
+            extra_attr_dict['Бренд'] = [sname, tmp, 'str', '']
+
+            # country
+            tmp = str(row[26].value).strip()
+            tmp = tmp.replace('Украина', 'Україна')
+            if tmp == '':
+                tmp = 'Україна'
+            extra_attr_dict['Країна виробник'] = [sname, tmp, 'str', '']
+
+            some_list = list(row[30:])
+
+            # add garanty 18 month attribute
+            if cat in [
+                'Матраци',
+                'Дивани',
+                'Подушки',
+                'Наматрацники і підматрацники',
+                'Футони і топери',
+            ]:
+                # extra_attr_dict['Гарантыя'] = '18'  # просто добавляем в словарь без типов данных
+                extra_attr_dict['Гарантія'] = [sname, '18', 'int', 'міc']
+
+            # ignore some "with start" sname products
+            for e in CON_IGNORE_SNAME_STARTS:
+                if sname.startswith(e):
+                    sname = ''
+            if sname == '':
+                continue
+
+            # if sname.startswith('Тканини для асортименту "ТИСА-МЕБЛІ"'):
+            #    continue
+
+            # af = []
+            # get list of tuples(name_product, name_attr, name_counter, value)
+            # use step by 1
+
+            # region 'convert work'
+            attrs_list0 = [[sname,
+                            str(val.value).strip(),
+                            str(some_list[idx + 1].value).strip(),
+                            str(some_list[idx + 2].value).strip()
+                            .replace('.0', '')
+                            .replace('*', 'x')
+                            ]
+                           for idx, val in enumerate(some_list)
+                           if idx % 3 == 0
+                           and val.value is not None]
+
+            # skip ignored attributes
+            attrs_list1 = [e for e in attrs_list0
+                           if e[1] not in CON_IGNORE_ATTRS
+                           and not (e[1] == 'Цвет' and e[3] == 'Разные цвета')
+                           and not (e[1] == 'Розмір' and e[3] == '7000')
+                           and not (e[1] == 'Состояние' and e[3] == 'Новое')
+                           and not (e[1] == 'Тип' and e[3] == 'Для сна')
+                           and not (e[1] == 'Цвет' and e[3] == 'Белый')
+                           and not (e[1] == 'Цвет' and e[3] == 'Разные цвета')
+                           and not (e[1] == 'Цвет обивки' and e[3] == 'Разные цвета')
+                           and not (e[1] == 'Тип крепления к матрасу' and e[3] == 'четыре резинки по углам')
+                           ]
+
+            # mm to sm
+            for idx, e in enumerate(attrs_list1):
+                if cat in ['Столи гостьові',
+                           'Стільці та табурети', ] \
+                        and e[1] in ['Глубина столика',
+                                     'Длина столика',
+                                     'Максимальная длина столешницы раскладного столика',
+                                     'Минимальная длина столешницы раскладного столика',
+                                     'Длина стола',
+                                     'Высота',
+                                     'Длина стола в раздвинутом (разложенном) состоянии',
+                                     'Длина стола в сдвинутом (сложенном) состоянии',
+                                     'Ширина',
+                                     'Глубина',
+                                     'Ширина стола',
+                                     ]:
+                    e[3] = str(int(e[3]) / 10).replace('.0', '')
+                    e[2] = 'см'
+
+                if e[2] in ['см', 'кг', 'шт.']:
+                    e[2] = 'int'
+
+                if e[3] in ['да', 'нет']:
+                    e[2] = 'bool'
+
+                    e[3] = e[3].replace('да', 'так').replace('нет', 'ні')
+
+                # else string
+                # if e[2] == '':
+                #    e[2] = 'str'
+
+                # attrs_list2.append(result)
+
+            attrs_list = attrs_list1
+
+            # add extra data
+            for e in extra_attr_dict:
+                attrs_list.append([sname, e, extra_attr_dict[e][0], extra_attr_dict[e][1]])
+                # attrs_list.append([e, extra_attr_dict[e][1]])
+
+            # item['attributes'] = attrs_list
+            item['attributes'] = {}
+            for e in attrs_list:
+                # skip empty attribute values
+                if not e[3].strip() == '':  # !!!!!!!!!!!!!!!
+                    item['attributes'][e[1]] = e[3]
+                    if e[3] == 'г':
+                        out('г=')
+                else:
+                    empty_attrbitutes_values[e[0]+', '+e[1]] = ''
+                    # out('empty attribute value')
+            # detect types of data
+
+            # endregion
+
+            # OUTPUT
+            for e in attrs_list:
+                s = '%s\t%s\t%s\t%s\n' % (e[0], e[1], e[2], e[3])
+                self._csv1.writelines(s)
+
+                if e[3].strip() == '':
+                    a = 1
+                # just for debug
+                attr_dict[e[3]] = ''
+                # self._csv += e[0]+'\t'+e[1]+'\t'+e[2]+'\n'
+
+            # print('[%i/%i] [%s] %s' % (index - 1, wb.max_row, cat, row[1].value,))
+
+            for e in attrs_list:
+                pass
+                # print(e[0])
+
+        self._csv1.close()
+        self._csv2.close()
+        wb2.close()
+
+        out('\n\n==Cats==')
+        for e in cats:
+            out(e)
+
+        out('\n\n==Attr_dict==')
+        for e in sorted(attr_dict):
+            out(e)
+
+        out('\n\n==Error: empty_attrbitutes_values_dict==')
+        for e in sorted(empty_attrbitutes_values):
+            out(e)
+
+
+# c = Impxls()
+# c.handle('export-products.xlsx')
+
 # test
-list_1 = ['диван', 'Network']
 list_2 = [
     {'name': 'бозен',
      'price': 99,
@@ -554,7 +604,7 @@ list_2 = [
      }
      },
 
-    {'name': 'бозен2',
+    {'name': 'техас',
      'price': 66,
      'cat_name': 'диван',
      'desc': 'super duper divan2',
@@ -568,16 +618,22 @@ im = ImportToOdd('http://localhost:8069',
                  'shop2',
                  env('user'),
                  env('pwd'))
-im.connect()
+# im.connect()
 
 # im.test()
 # im.unlink_attributes()
 # im.create_attribute('форма', 'квадрат')
 
 # im.set_attributes_for_item(None, None)
-cats = im.create_categories(list_1)
+# cats = im.create_categories(list_1)
 
 # im.unlink_item()
+
+c = Impxls()
+c.handle('export-products.xlsx')
+
+exit(0)
+
 
 out('\n==products==')
 i = 0
