@@ -2,7 +2,6 @@
 
 from openpyxl import load_workbook
 import xmlrpc.client as xmlrpclib
-# import environ
 from environs import Env
 import base64
 
@@ -47,7 +46,10 @@ class ImportToOdd:
         out('\n==server info==')
         out(cv)
 
-        self._uid = self._common_objects.authenticate(self._db, self._username, self._password, {})
+        try:
+            self._uid = self._common_objects.authenticate(self._db, self._username, self._password, {})
+        except:
+            pass
 
         if not self._uid:
             out('Authorization FAILED!')
@@ -333,6 +335,10 @@ CON_IGNORE_SNAME_STARTS = ['Тканини для асортименту "ТИС
 
 CON_IGNORE_ATTRS = ['Гарантийный срок',
                     'Ручки для переноса',
+                    'Тип подъемного механизма',
+                    'Количество зон жесткости матраса',
+                    'Количество спальных мест',
+                    'Вид кровати',
                     ]
 # endregion
 
@@ -366,7 +372,8 @@ class Impxls(object):
 
         item = {}
 
-        empty_attrbitutes_values = {}
+        error_attrbitutes_values = {}
+        attrs_list_names = {}
 
         for row in wb.rows:
             extra_attr_dict.clear()
@@ -432,7 +439,9 @@ class Impxls(object):
                 .replace('Тиса мебель', 'Тиса меблі') \
                 .replace('Елисеевская мебель', 'Єлисеївські меблі') \
                 .replace('Микс мебель', 'Мікс меблі') \
-                .replace('Мелитополь мебель', 'Мелітополь меблі')
+                .replace('Мелитополь мебель', 'Мелітополь меблі') \
+                .replace('Еврокнижка', 'Єврокнижка') \
+                .replace('деревянные ламели', 'букові ламелі')
 
             if tmp == '':
                 tmp = 'Константа'
@@ -497,6 +506,9 @@ class Impxls(object):
                            and not (e[1] == 'Тип крепления к матрасу' and e[3] == 'четыре резинки по углам')
                            ]
 
+            for e in attrs_list1:
+                attrs_list_names[e[1]] = ''
+
             # mm to sm
             for idx, e in enumerate(attrs_list1):
                 if cat in ['Столи гостьові',
@@ -507,11 +519,12 @@ class Impxls(object):
                                      'Минимальная длина столешницы раскладного столика',
                                      'Длина стола',
                                      'Высота',
+                                     'Высота стола',
                                      'Длина стола в раздвинутом (разложенном) состоянии',
                                      'Длина стола в сдвинутом (сложенном) состоянии',
                                      'Ширина',
-                                     'Глубина',
                                      'Ширина стола',
+                                     'Глубина',
                                      ]:
                     e[3] = str(int(e[3]) / 10).replace('.0', '')
                     e[2] = 'см'
@@ -519,10 +532,10 @@ class Impxls(object):
                 if e[2] in ['см', 'кг', 'шт.']:
                     e[2] = 'int'
 
-                if e[3] in ['да', 'нет']:
+                if e[3] in ['да', 'нет', 'True', 'False']:
                     e[2] = 'bool'
 
-                    e[3] = e[3].replace('да', 'так').replace('нет', 'ні')
+                    e[3] = e[3].replace('да', 'так').replace('нет', 'ні').replace('True', 'так').replace('False', 'ні')
 
                 # else string
                 # if e[2] == '':
@@ -543,10 +556,18 @@ class Impxls(object):
                 # skip empty attribute values
                 if not e[3].strip() == '':  # !!!!!!!!!!!!!!!
                     item['attributes'][e[1]] = e[3]
-                    if e[3] == 'г':
-                        out('г=')
-                else:
-                    empty_attrbitutes_values[e[0]+', '+e[1]] = ''
+                    # test anomality attributes values !!!
+                    if e[3] in [
+                        '', 'г', '7', 'Мікс мелі', '309',
+                        '890', '760', '4.7', '4.5', '7.6', 'False', 'True',
+                        'Двоярусна', 'Ножки', 'Tik-Tak', 'взаимозаменяемый', 'двуспальная', 'левый',
+                        'одноярусная кровать',
+                        'шок',
+                        # '101', '102', '103', '104', '105', '106', '107', '108',
+                        ]:
+                        error_attrbitutes_values[e[0] + ', ' + e[1]+'='+e[3]] = ''
+                        out('      ******     Error attribute value: %s      *********' % e[3])
+
                     # out('empty attribute value')
             # detect types of data
 
@@ -577,12 +598,17 @@ class Impxls(object):
         for e in cats:
             out(e)
 
-        out('\n\n==Attr_dict==')
+        # attrs_list_names
+        out('\n\n==Attr_names_dict==')
+        for e in sorted(attrs_list_names):
+            out(e)
+
+        out('\n\n==Attr_values_dict==')
         for e in sorted(attr_dict):
             out(e)
 
-        out('\n\n==Error: empty_attrbitutes_values_dict==')
-        for e in sorted(empty_attrbitutes_values):
+        out('\n\n==Error: error_attrbitutes_values==')
+        for e in sorted(error_attrbitutes_values):
             out(e)
 
 
@@ -614,10 +640,7 @@ list_2 = [
 
 ]
 
-im = ImportToOdd('http://localhost:8069',
-                 'shop2',
-                 env('user'),
-                 env('pwd'))
+im = ImportToOdd(env('host'), env('db'), env('user'), env('pwd'))
 # im.connect()
 
 # im.test()
