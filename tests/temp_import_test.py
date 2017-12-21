@@ -4,6 +4,10 @@ from openpyxl import load_workbook
 import xmlrpc.client as xmlrpclib
 from environs import Env
 import base64
+import copy
+
+import pickle
+
 
 # import datetime
 # import os
@@ -330,7 +334,7 @@ class ImportToOdd:
 
 
 # region 'conditions list const'
-CON_IGNORE_SNAME_STARTS = ['Тканини для асортименту "ТИСА-МЕБЛІ"',
+CON_IGNORE_SNAME_STARTS = ['Тканини для асортименту',
                            ]
 
 CON_IGNORE_ATTRS = ['Гарантийный срок',
@@ -339,6 +343,7 @@ CON_IGNORE_ATTRS = ['Гарантийный срок',
                     'Количество зон жесткости матраса',
                     'Количество спальных мест',
                     'Вид кровати',
+                    'Эффект "Зима - Лето"'
                     ]
 # endregion
 
@@ -358,6 +363,10 @@ class Impxls(object):
         self._csv2 = open('attr2.csv', 'w')
 
     def handle(self, fn):
+        def translate(id_kind, text):
+            result = text
+            return result
+
         wb2 = load_workbook(fn, read_only=True)
         # print('Spread sheats names: %s' % wb2.get_sheet_names())
         wb = wb2.worksheets[0]
@@ -365,6 +374,7 @@ class Impxls(object):
         index = 0
         cats = dict()
         attr_dict = dict()
+        brands = {}
 
         extra_attr_dict = dict()  # name, [type, value]
 
@@ -374,6 +384,8 @@ class Impxls(object):
 
         error_attrbitutes_values = {}
         attrs_list_names = {}
+
+        result = []
 
         for row in wb.rows:
             extra_attr_dict.clear()
@@ -389,26 +401,32 @@ class Impxls(object):
             # if index > 50:
             #     break
 
-            # index
-            item['index'] = index
+            item['index'] = index-1
+            item['group_id'] = str(row[28].value).strip()
 
             # name
-            sname = str(row[1].value).strip() \
+            item['sname'] = str(row[1].value).strip() \
                 .replace('"', '') \
                 .replace('  ', ' ') \
                 .replace('*', 'x')
-            item['sname'] = sname
-            out('[%i/%i] %s' % (index, total_count, sname))
+
+            # ignore some "with start" sname products
+            for e in CON_IGNORE_SNAME_STARTS:
+                if item['sname'].startswith(e):
+                    item['sname'] = ''
+            if item['sname'] == '':  # hack
+                    continue
+
+            out('[%i/%i] %s' % (index, total_count, item['sname']))
 
             v = row[5].value
             item['price'] = int(v) if not (v is None) else 0
 
-            v = row[3].value
-            item['description'] = str(v) if not (v is None) else ''
+            # v = row[3].value
 
-            cat_original = str(row[15].value)
+            item['original_cat'] = str(row[15].value)
 
-            cat = cat_original \
+            cat = item['original_cat'] \
                 .replace('Матраци Sleep&Fly', 'Матраци') \
                 .replace('Матраци Evolution', 'Матраци') \
                 .replace('Матраци Sleep&fly Organic', 'Матраци') \
@@ -440,19 +458,19 @@ class Impxls(object):
                 .replace('Елисеевская мебель', 'Єлисеївські меблі') \
                 .replace('Микс мебель', 'Мікс меблі') \
                 .replace('Мелитополь мебель', 'Мелітополь меблі') \
-                .replace('Еврокнижка', 'Єврокнижка') \
-                .replace('деревянные ламели', 'букові ламелі')
+                .replace('None', 'Олімп') \
 
-            if tmp == '':
-                tmp = 'Константа'
-            extra_attr_dict['Бренд'] = [sname, tmp, 'str', '']
+                # .replace('Еврокнижка', 'Єврокнижка') \
+                #  .replace('деревянные ламели', 'букові ламелі')
+
+            extra_attr_dict['Бренд'] = [item['sname'], tmp, 'str', '']
 
             # country
             tmp = str(row[26].value).strip()
             tmp = tmp.replace('Украина', 'Україна')
             if tmp == '':
                 tmp = 'Україна'
-            extra_attr_dict['Країна виробник'] = [sname, tmp, 'str', '']
+            extra_attr_dict['Країна виробник'] = [item['sname'], tmp, 'str', '']
 
             some_list = list(row[30:])
 
@@ -465,24 +483,12 @@ class Impxls(object):
                 'Футони і топери',
             ]:
                 # extra_attr_dict['Гарантыя'] = '18'  # просто добавляем в словарь без типов данных
-                extra_attr_dict['Гарантія'] = [sname, '18', 'int', 'міc']
+                extra_attr_dict['Гарантія'] = [item['sname'], '18', 'int', 'міc']
 
-            # ignore some "with start" sname products
-            for e in CON_IGNORE_SNAME_STARTS:
-                if sname.startswith(e):
-                    sname = ''
-            if sname == '':
-                continue
-
-            # if sname.startswith('Тканини для асортименту "ТИСА-МЕБЛІ"'):
-            #    continue
-
-            # af = []
-            # get list of tuples(name_product, name_attr, name_counter, value)
             # use step by 1
 
             # region 'convert work'
-            attrs_list0 = [[sname,
+            attrs_list0 = [[item['sname'],
                             str(val.value).strip(),
                             str(some_list[idx + 1].value).strip(),
                             str(some_list[idx + 2].value).strip()
@@ -547,27 +553,38 @@ class Impxls(object):
 
             # add extra data
             for e in extra_attr_dict:
-                attrs_list.append([sname, e, extra_attr_dict[e][0], extra_attr_dict[e][1]])
+                attrs_list.append([item['sname'], e, extra_attr_dict[e][0], extra_attr_dict[e][1]])
                 # attrs_list.append([e, extra_attr_dict[e][1]])
 
             # item['attributes'] = attrs_list
             item['attributes'] = {}
             for e in attrs_list:
+                e[3] = e[3].strip().replace('  ', ' ')
                 # skip empty attribute values
-                if not e[3].strip() == '':  # !!!!!!!!!!!!!!!
+                if not e[3] == '':  # !!!!!!!!!!!!!!!
                     item['attributes'][e[1]] = e[3]
                     # test anomality attributes values !!!
                     if e[3] in [
-                        '', 'г', '7', 'Мікс мелі', '309',
-                        '890', '760', '4.7', '4.5', '7.6', 'False', 'True',
-                        'Двоярусна', 'Ножки', 'Tik-Tak', 'взаимозаменяемый', 'двуспальная', 'левый',
-                        'одноярусная кровать',
-                        'шок',
+                        '', 'г', '7', '309',
+                        '890', '760',
+                        # '4.7', '4.5', '7.6',  # PROM noobs
+                        'False', 'True',
+                        'Tik-Tak', 'взаимозаменяемый', 'левый',
+                        'одноярусная кровать'
                         # '101', '102', '103', '104', '105', '106', '107', '108',
-                        ]:
+                         ]:
                         error_attrbitutes_values[e[0] + ', ' + e[1]+'='+e[3]] = ''
                         out('      ******     Error attribute value: %s      *********' % e[3])
 
+                    # translate
+                    # attr names
+                    # e[1] = translate(0, e[1])
+
+                    # attr values
+                    # e[3] = translate(1, e[3])
+                    # pass
+
+                    # error_attrbitutes_values[e[0] + ', ' + e[1] + '=' + e[3]] = ''
                     # out('empty attribute value')
             # detect types of data
 
@@ -586,9 +603,8 @@ class Impxls(object):
 
             # print('[%i/%i] [%s] %s' % (index - 1, wb.max_row, cat, row[1].value,))
 
-            for e in attrs_list:
-                pass
-                # print(e[0])
+            item['description'] = str(row[3].value) if not (row[3].value is None) else ''
+            result.append(copy.copy(item))
 
         self._csv1.close()
         self._csv2.close()
@@ -610,6 +626,34 @@ class Impxls(object):
         out('\n\n==Error: error_attrbitutes_values==')
         for e in sorted(error_attrbitutes_values):
             out(e)
+
+        return result
+
+    @staticmethod
+    def stage2(data):
+
+        # dict of group_id with miniumal price
+        tmp_list_1 = {}
+
+        for e in data:
+            group_id = e['group_id']
+
+            counter = 1
+
+            # this is group ? (can be once position!)
+            if group_id != 'None':
+                v = ''
+                try:
+                    v = tmp_list_1[group_id]
+                    tmp_list_1[group_id] = tmp_list_1[group_id] + counter  # new group_id, append!
+                except KeyError:
+                    tmp_list_1[group_id] = counter  # new group_id, append!
+
+
+
+        result = []
+
+        return result
 
 
 # c = Impxls()
@@ -653,7 +697,23 @@ im = ImportToOdd(env('host'), env('db'), env('user'), env('pwd'))
 # im.unlink_item()
 
 c = Impxls()
-c.handle('export-products.xlsx')
+
+# stage 1, prepare XLS to import
+data = c.handle('export-products.xlsx')
+
+with open('stage.pickle', 'wb') as handle:
+    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+data = None
+
+# stage 2, combine items to variants group, translate attributes, final prepare
+with open('stage.pickle', 'rb') as handle:
+    data = pickle.load(handle)
+
+data = c.stage2(data)
+
+pass
+
 
 exit(0)
 
