@@ -631,25 +631,102 @@ class Impxls(object):
 
     @staticmethod
     def stage2(data):
+        def assign_main_variant(el):
+            el_extra = {}
+            s0 = '190/200'
+
+            variants = el['variant']
+
+            for e in variants:
+
+                # 160*190/200 -> 160*190 + 160*200
+                if s0 in e:
+                    price = variants[e]
+                    prefix = e[len(s0):]
+                    s1 = e.replace(s0, '190')
+                    s2 = e.replace(s0, '200')
+
+                    el_extra[s1] = price
+                    el_extra[s2] = price
+                    # pass
+                else:
+                    el_extra[e] = variants[e]
+
+            # assign most popular attribute to main record
+            if el['cat'] in ['Матраци', 'Ліжка']:
+                try:
+                    el['price'] = el_extra['160x200']
+                except KeyError:
+                    # get minimum price from variants
+                    key_min = min(el_extra.keys(), key=(lambda k: el_extra[k]))
+
+                    # min_price = min(el_extra.get, key=el_extra.get)
+                    min_price = el_extra[key_min]
+                    el['price'] = min_price
+                    out('*** dont have 160x200 *** [%s] [base_price=%i] %s' % (el['sname'], min_price, el_extra))
+
+            el['variant'] = el_extra
+
+            # el['sname'] += 'tetete'
+            pass
+
 
         # dict of group_id with miniumal price
         tmp_list_1 = {}
+        tmp_list_2 = {}
 
         for e in data:
             group_id = e['group_id']
 
             counter = 1
 
-            # this is group ? (can be once position!)
+            # this is group ? (can be once position!), dict(group_id, sname_with_minimal_length)
             if group_id != 'None':
                 v = ''
                 try:
                     v = tmp_list_1[group_id]
-                    tmp_list_1[group_id] = tmp_list_1[group_id] + counter  # new group_id, append!
+                    m = len(e['sname'])
+                    # tmp_list_1[group_id] = tmp_list_1[group_id] + counter  # new group_id, append!
+
+                    if m < len(e['sname']):
+                        tmp_list_1[group_id] = m  # new group_id, append!
                 except KeyError:
-                    tmp_list_1[group_id] = counter  # new group_id, append!
+                    # tmp_list_1[group_id] = counter  # new group_id, append!
+                    tmp_list_1[group_id] = len(e['sname'])
 
+        tmp_list_3 = {}
 
+        # assign main position
+        out('==list of main positions==')
+        for e in data:
+            group_id = e['group_id']
+            if group_id != 'None':
+                v = tmp_list_1[group_id]
+                if len(e['sname']) == v:
+                    tmp_list_3[group_id] = e
+                    tmp_list_3[group_id]['variant'] = dict()
+                    out('%s: %i' % (e['sname'], e['price']))
+
+        # add variants
+        for e in data:
+            group_id = e['group_id']
+            sname_len = len(e['sname'])
+            if (group_id != 'None') and (sname_len > len(tmp_list_3[group_id]['sname'])):
+                e2 =tmp_list_3[group_id]
+
+                sname_len2 = len(e2['sname'])
+                s = e['sname'][sname_len2:].strip()  # [sname_len::]
+
+                e2['variant'][s] = e['price']
+                pass
+
+        # assign variant to main variant
+        # tmp_list_4 = {}
+        for e in tmp_list_3:
+            assign_main_variant(tmp_list_3[e])
+            pass
+
+        # 'Ліжка' 'Матраци'
 
         result = []
 
@@ -699,10 +776,11 @@ im = ImportToOdd(env('host'), env('db'), env('user'), env('pwd'))
 c = Impxls()
 
 # stage 1, prepare XLS to import
-data = c.handle('export-products.xlsx')
-
-with open('stage.pickle', 'wb') as handle:
-    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+# TODO: NEED UNKOMENT!!!!!
+# data = c.handle('export-products.xlsx')
+#
+# with open('stage.pickle', 'wb') as handle:
+#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 data = None
 
