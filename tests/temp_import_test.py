@@ -343,7 +343,8 @@ CON_IGNORE_ATTRS = ['Гарантийный срок',
                     'Количество зон жесткости матраса',
                     'Количество спальных мест',
                     'Вид кровати',
-                    'Эффект "Зима - Лето"'
+                    'Эффект "Зима - Лето"',
+                    'Размер матраса, см',
                     ]
 # endregion
 
@@ -630,47 +631,61 @@ class Impxls(object):
         return result
 
     @staticmethod
-    def stage2(data):
-        def assign_main_variant(el):
-            el_extra = {}
-            s0 = '190/200'
+    def assign_main_variant(el):
+        el_extra = {}
+        s0 = '190/200'
 
-            variants = el['variant']
+        variants = el['variant']
 
-            for e in variants:
+        for e in variants:
 
-                # 160*190/200 -> 160*190 + 160*200
-                if s0 in e:
-                    price = variants[e]
-                    prefix = e[len(s0):]
-                    s1 = e.replace(s0, '190')
-                    s2 = e.replace(s0, '200')
+            # 160*190/200 -> 160*190 + 160*200
+            if s0 in e:
+                price = variants[e]
+                prefix = e[len(s0):]
+                s1 = e.replace(s0, '190')
+                s2 = e.replace(s0, '200')
 
-                    el_extra[s1] = price
-                    el_extra[s2] = price
-                    # pass
-                else:
-                    el_extra[e] = variants[e]
+                el_extra[s1] = price
+                el_extra[s2] = price
+                # pass
+            else:
+                el_extra[e] = variants[e]
 
-            # assign most popular attribute to main record
-            if el['cat'] in ['Матраци', 'Ліжка']:
+        key_error = False
+        l1 = ['Матраци', 'Ліжка']
+        l2 = ['Футони і топери']
+        # assign most popular attribute to main record
+        if len(el['variant']) > 0:
+            # has variants ?
+            if el['cat'] in l1:
                 try:
                     el['price'] = el_extra['160x200']
                 except KeyError:
-                    # get minimum price from variants
-                    key_min = min(el_extra.keys(), key=(lambda k: el_extra[k]))
+                    key_error = True
 
-                    # min_price = min(el_extra.get, key=el_extra.get)
-                    min_price = el_extra[key_min]
-                    el['price'] = min_price
-                    out('*** dont have 160x200 *** [%s] [base_price=%i] %s' % (el['sname'], min_price, el_extra))
+            if el['cat'] in l2:
+                try:
+                    el['price'] = el_extra['120x190']
+                except KeyError:
+                    key_error = True
 
-            el['variant'] = el_extra
+        l3 = l1+l2
+        if key_error or (el['cat'] not in l3):
+            # get minimum price from variants
+            key_min = min(el_extra.keys(), key=(lambda k: el_extra[k]))
 
-            # el['sname'] += 'tetete'
-            pass
+            min_price = el_extra[key_min]
+            el['price'] = min_price
 
+            out('*** dont have 160x200 *** [%s] [base_price=%i] %s' % (el['sname'], min_price, el_extra))
 
+        el['variant'] = el_extra
+
+        # el['sname'] += 'tetete'
+        pass
+
+    def stage2(self, data):
         # dict of group_id with miniumal price
         tmp_list_1 = {}
         tmp_list_2 = {}
@@ -723,15 +738,21 @@ class Impxls(object):
         # assign variant to main variant
         # tmp_list_4 = {}
         for e in tmp_list_3:
-            assign_main_variant(tmp_list_3[e])
-            pass
+            item = tmp_list_3[e]
+            self.assign_main_variant(item)
+            if item['attributes']['Бренд'] == '':
+                out('***brand empty!: %s***' % e)
+            if item['price'] == '0':
+                out('***price 0!: %s***' % e)
 
-        # 'Ліжка' 'Матраци'
+        pass
 
-        result = []
+        # result = []
 
-        return result
+        # return result
 
+    def stage3(self, data):
+        pass
 
 # c = Impxls()
 # c.handle('export-products.xlsx')
@@ -776,19 +797,28 @@ im = ImportToOdd(env('host'), env('db'), env('user'), env('pwd'))
 c = Impxls()
 
 # stage 1, prepare XLS to import
-# TODO: NEED UNKOMENT!!!!!
-# data = c.handle('export-products.xlsx')
-#
-# with open('stage.pickle', 'wb') as handle:
-#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
 data = None
 
-# stage 2, combine items to variants group, translate attributes, final prepare
-with open('stage.pickle', 'rb') as handle:
-    data = pickle.load(handle)
+# TODO: NEED UNKOMENT!!!!!
+data = c.handle('export-products.xlsx')
+with open('stage1.pickle', 'wb') as handle:
+    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-data = c.stage2(data)
+# stage 2, combine items to variants group,
+with open('stage1.pickle', 'rb') as handle:
+    data = pickle.load(handle)
+c.stage2(data)
+with open('stage2.pickle', 'wb') as handle:
+    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+# stage 3, cat + brand = attributes + variants
+with open('stage2.pickle', 'rb') as handle:
+    data = pickle.load(handle)
+c.stage3(data)
+with open('stage3.pickle', 'wb') as handle:
+    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
 
 pass
 
