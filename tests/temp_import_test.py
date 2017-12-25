@@ -1,13 +1,15 @@
 # -- encoding: utf8 --
-
 from openpyxl import load_workbook
-import xmlrpc.client as xmlrpclib
 from environs import Env
+import xmlrpc.client as xmlrpclib
+import pickle
 import base64
 import copy
+import os
 
-import pickle
-
+# to read
+# https://github.com/osiell/odoorpc
+# http://www.odoo.com/documentation/10.0/api_integration.html
 
 # import datetime
 # import os
@@ -19,6 +21,10 @@ import pickle
 # import tempfile
 
 
+def cls():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
 def base64_of_file(fn):
     with open(fn, "rb") as image_file:
         return base64.b64encode(image_file.read())
@@ -28,7 +34,6 @@ env = Env()
 out = print
 
 
-# http://www.odoo.com/documentation/10.0/api_integration.html
 class ImportToOdd:
     _srv, _db, _username, _password = '', '', '', ''
     _uid = None
@@ -688,23 +693,26 @@ class Impxls(object):
     def stage2(self, data):
         # dict of group_id with miniumal price
         tmp_list_1 = {}
-        tmp_list_2 = {}
 
         for e in data:
+            # hack, fix wrong value represent
+            if e['group_id'] == 'None':
+                e['group_id'] = None
+
             group_id = e['group_id']
 
-            counter = 1
+            # counter = 1
 
             # this is group ? (can be once position!), dict(group_id, sname_with_minimal_length)
-            if group_id != 'None':
-                v = ''
+            if group_id:
+                # v = ''
                 try:
-                    v = tmp_list_1[group_id]
-                    m = len(e['sname'])
+                    v = tmp_list_1[group_id]    # do not Delete!!! (need for try test!)
+                    len_sname = len(e['sname'])
                     # tmp_list_1[group_id] = tmp_list_1[group_id] + counter  # new group_id, append!
 
-                    if m < len(e['sname']):
-                        tmp_list_1[group_id] = m  # new group_id, append!
+                    if len_sname < len(e['sname']):
+                        tmp_list_1[group_id] = len_sname  # new group_id, append!
                 except KeyError:
                     # tmp_list_1[group_id] = counter  # new group_id, append!
                     tmp_list_1[group_id] = len(e['sname'])
@@ -712,10 +720,10 @@ class Impxls(object):
         tmp_list_3 = {}
 
         # assign main position
-        out('==list of main positions==')
+        out('\n==Base positions (for variants)==')
         for e in data:
             group_id = e['group_id']
-            if group_id != 'None':
+            if group_id:
                 v = tmp_list_1[group_id]
                 if len(e['sname']) == v:
                     tmp_list_3[group_id] = e
@@ -726,8 +734,8 @@ class Impxls(object):
         for e in data:
             group_id = e['group_id']
             sname_len = len(e['sname'])
-            if (group_id != 'None') and (sname_len > len(tmp_list_3[group_id]['sname'])):
-                e2 =tmp_list_3[group_id]
+            if group_id and (sname_len > len(tmp_list_3[group_id]['sname'])):
+                e2 = tmp_list_3[group_id]
 
                 sname_len2 = len(e2['sname'])
                 s = e['sname'][sname_len2:].strip()  # [sname_len::]
@@ -744,15 +752,23 @@ class Impxls(object):
                 out('***brand empty!: %s***' % e)
             if item['price'] == '0':
                 out('***price 0!: %s***' % e)
+                raise Exception('price = 0', 'price')
 
-        pass
+        return tmp_list_3
 
-        # result = []
+    @staticmethod
+    def stage3(data_variants, data_full):
+        # cls()
+        tmp_list = []
+        for e in data_variants:
+            tmp_list.append(data_variants[e])
 
-        # return result
+        for e in data_full:
+            if not e['group_id']:
+                tmp_list.append(e)
 
-    def stage3(self, data):
-        pass
+        return tmp_list
+
 
 # c = Impxls()
 # c.handle('export-products.xlsx')
@@ -800,27 +816,24 @@ c = Impxls()
 data = None
 
 # TODO: NEED UNKOMENT!!!!!
-data = c.handle('export-products.xlsx')
-with open('stage1.pickle', 'wb') as handle:
-    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+# data = c.handle('export-products.xlsx')
+# with open('stage1.pickle', 'wb') as handle:
+#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-# stage 2, combine items to variants group,
-with open('stage1.pickle', 'rb') as handle:
-    data = pickle.load(handle)
-c.stage2(data)
-with open('stage2.pickle', 'wb') as handle:
-    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-# stage 3, cat + brand = attributes + variants
-with open('stage2.pickle', 'rb') as handle:
-    data = pickle.load(handle)
-c.stage3(data)
-with open('stage3.pickle', 'wb') as handle:
-    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+with open('stage1.pickle', 'rb') as handle:  # stage 2, combine items to variants group,
+    data_full2 = pickle.load(handle)
+data_variants2 = c.stage2(data_full2)
+# with open('stage2.pickle', 'wb') as handle:
+#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-pass
+# with open('stage2.pickle', 'rb') as handle: # stage 3, cat + brand = attributes + variants
+#     data = pickle.load(handle)
+ready_data = c.stage3(data_variants2, data_full2)
+# with open('stage3.pickle', 'wb') as handle:
+#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+_ = 1
 
 
 exit(0)
