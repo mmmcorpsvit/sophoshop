@@ -6,6 +6,7 @@ import pickle
 import base64
 import copy
 import os
+import urllib3
 
 # to read
 # https://github.com/osiell/odoorpc
@@ -24,15 +25,33 @@ import os
 def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+#
+# def base64_of_file(fn):
+#     with open(fn, "rb") as image_file:
+#         return base64.b64encode(image_file.read())
 
-def base64_of_file(fn):
-    with open(fn, "rb") as image_file:
-        return base64.b64encode(image_file.read())
+
+def get_image_base64_from_url(c, url):
+    """
+    Download file
+    :param c: c = urllib3.PoolManager()
+    :param url: URL
+    # :return: data of file
+    """
+
+    # logger.error(url)
+    # logger.error(filename)
+
+    with c.request('GET', url, preload_content=False) as resp:
+        result = base64.b64encode(resp.data)
+
+    resp.release_conn()  # not 100% sure this is required though
+    return result
 
 
 env = Env()
 out = print
-
+urllib3.disable_warnings()
 
 class ImportToOdd:
     _srv, _db, _username, _password = '', '', '', ''
@@ -338,6 +357,7 @@ class ImportToOdd:
         pass
 
 
+IMAGES_DOMAINE = 'https://images.ua.prom.st/'
 # region 'conditions list const'
 CON_IGNORE_SNAME_STARTS = ['Тканини для асортименту',
                            ]
@@ -360,6 +380,7 @@ class Impxls(object):
     _rebuild_index = False
     _csv1 = None
     _csv2 = None
+    _url_lib_pool = urllib3.PoolManager()
 
     def __init__(self, flush=False, add_images=False, rebuild_index=False):
         self._flush = flush
@@ -401,14 +422,24 @@ class Impxls(object):
             if index == 1:
                 continue
 
-            # if index < 103:
-            #     continue
+            # if index < 62:
+            #    continue
 
             # if index > 50:
             #     break
 
             item['index'] = index-1
             item['group_id'] = str(row[28].value).strip()
+
+            images = str(row[11].value).split(',')
+            item['images'] = []
+            for e in images:
+                # e = e.strip()
+                item['images'].append(e.replace(IMAGES_DOMAINE, '').strip())
+
+                # fdata = get_image_base64_from_url(self._url_lib_pool, e)
+                # item['images'].append(fdata)
+            # item['images'] = str(row[11].value).replace(IMAGES_DOMAINE, '').split(',')
 
             # name
             item['sname'] = str(row[1].value).strip() \
@@ -464,10 +495,10 @@ class Impxls(object):
                 .replace('Елисеевская мебель', 'Єлисеївські меблі') \
                 .replace('Микс мебель', 'Мікс меблі') \
                 .replace('Мелитополь мебель', 'Мелітополь меблі') \
-                .replace('None', 'Олімп') \
+                .replace('None', 'Олімп')
 
-                # .replace('Еврокнижка', 'Єврокнижка') \
-                #  .replace('деревянные ламели', 'букові ламелі')
+            # .replace('Еврокнижка', 'Єврокнижка') \
+            # .replace('деревянные ламели', 'букові ламелі')
 
             extra_attr_dict['Бренд'] = [item['sname'], tmp, 'str', '']
 
@@ -735,13 +766,22 @@ class Impxls(object):
             group_id = e['group_id']
             sname_len = len(e['sname'])
             if group_id and (sname_len > len(tmp_list_3[group_id]['sname'])):
+
+                # add variant
                 e2 = tmp_list_3[group_id]
 
                 sname_len2 = len(e2['sname'])
                 s = e['sname'][sname_len2:].strip()  # [sname_len::]
 
+                # dict(variant, price)
                 e2['variant'][s] = e['price']
-                pass
+
+                # prom.ua create separate image of variants for same item 0_o.... world - stop!, i live this planete...
+                """
+                for image in e['images']:
+                    if image not in e2['images']:
+                        e2['images'].append(image)
+                """
 
         # assign variant to main variant
         # tmp_list_4 = {}
@@ -750,9 +790,10 @@ class Impxls(object):
             self.assign_main_variant(item)
             if item['attributes']['Бренд'] == '':
                 out('***brand empty!: %s***' % e)
+                raise Exception('brand empty! = 0', 'brand')
             if item['price'] == '0':
-                out('***price 0!: %s***' % e)
-                raise Exception('price = 0', 'price')
+                # out('***price 0!: %s***' % e)
+                raise Exception('[%s] price = 0' % e, 'price')
 
         return tmp_list_3
 
@@ -810,28 +851,31 @@ im = ImportToOdd(env('host'), env('db'), env('user'), env('pwd'))
 
 # im.unlink_item()
 
-c = Impxls()
+c = Impxls(True, True)
 
 # stage 1, prepare XLS to import
-data = None
+# data = None
 
 # TODO: NEED UNKOMENT!!!!!
-# data = c.handle('export-products.xlsx')
-# with open('stage1.pickle', 'wb') as handle:
-#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
+"""
+with open('stage1.pickle', 'wb') as handle:
+    pickle.dump(data_xls, handle, protocol=pickle.HIGHEST_PROTOCOL)
 with open('stage1.pickle', 'rb') as handle:  # stage 2, combine items to variants group,
-    data_full2 = pickle.load(handle)
-data_variants2 = c.stage2(data_full2)
-# with open('stage2.pickle', 'wb') as handle:
-#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    data_xls = pickle.load(handle)
 
+with open('stage2.pickle', 'wb') as handle:
+    pickle.dump(data_variants2, handle, protocol=pickle.HIGHEST_PROTOCOL)
+with open('stage2.pickle', 'rb') as handle:  # stage 3, cat + brand = attributes + variants
+    data = pickle.load(handle)
+    
+with open('stage3.pickle', 'wb') as handle:
+    pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)    
+"""
 
-# with open('stage2.pickle', 'rb') as handle: # stage 3, cat + brand = attributes + variants
-#     data = pickle.load(handle)
-ready_data = c.stage3(data_variants2, data_full2)
-# with open('stage3.pickle', 'wb') as handle:
-#     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)
+data_xls = c.handle('export-products.xlsx')
+data_variants2 = c.stage2(data_xls)
+ready_data = c.stage3(data_variants2, data_xls)
+
 
 _ = 1
 
