@@ -2,12 +2,13 @@
 from openpyxl import load_workbook
 from environs import Env
 import xmlrpc.client as xmlrpclib
-import pickle
 import base64
 import copy
 import os
 import urllib3
+import shutil
 
+import pickle
 # to read
 # https://github.com/osiell/odoorpc
 # http://www.odoo.com/documentation/10.0/api_integration.html
@@ -381,6 +382,7 @@ class Impxls(object):
     _csv1 = None
     _csv2 = None
     _url_lib_pool = urllib3.PoolManager()
+    images_folder = '%s/images/' % os.getcwd()
 
     def __init__(self, flush=False, add_images=False, rebuild_index=False):
         self._flush = flush
@@ -797,9 +799,10 @@ class Impxls(object):
 
         return tmp_list_3
 
-    @staticmethod
-    def stage3(data_variants, data_full):
+    def stage3(self, data_variants, data_full):
         # cls()
+
+
         tmp_list = []
         for e in data_variants:
             tmp_list.append(data_variants[e])
@@ -807,6 +810,27 @@ class Impxls(object):
         for e in data_full:
             if not e['group_id']:
                 tmp_list.append(e)
+
+        # cache images
+        counter = 0
+        for e in tmp_list:
+            counter += 1
+
+            for s in e['images']:
+                if len(s) < 2:
+                    continue
+
+                fs = '%s%s' % (self.images_folder, s)
+                if not os.path.isfile(fs):
+                    url = '%s%s' % (IMAGES_DOMAINE, s)
+
+                    with self._url_lib_pool.request('GET', url, preload_content=False) as resp, \
+                            open(fs, 'wb') as out_file:
+                        shutil.copyfileobj(resp, out_file)
+                        # result = base64.b64encode(resp.data)
+
+                    resp.release_conn()  # not 100% sure this is required though
+                    out('[%i/%i] download: %s' % (counter, len(tmp_list), url))
 
         return tmp_list
 
