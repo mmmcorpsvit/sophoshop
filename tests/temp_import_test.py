@@ -37,7 +37,9 @@ def cls():
 def get_base(file_name):
     result = ''
     with open(file_name, 'rb') as resp:
-        result =base64.b64encode(resp.read())
+        file_data = resp.read()
+        # result = str(base64.b64encode(file_data))
+        result = base64.encodebytes(file_data).decode("utf-8")
     return result
 
 
@@ -304,7 +306,7 @@ class ImportToOdd:
         if len(item['images']) > 0:
             s = str(item['images'][0])
 
-        #s = '/9j/4AAQSkZJRgABAQEBLAEsAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABLAGQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDaSPHWpVIXrzTRijFd7Z8+oWJ1cdl/OniQ+uPpVdTUygnpUNmsVcfml3GmfMP4TxSDJ6Url8jJlfHenh81CqnvVlI/WpbNIxYqgtUyoF60zO3gClBYjIIpXLUSXfSb6iyR1pM0h3ZN5lFRUUCuzEVvWn5psILDkDNSiMg8g03ViZrDT7DVzUqMVOaarITjcM1OqZqHVTNoYeSZJA43fNzmpzDGRno3aoEUA4NWFAx3rGU0nc7YQbjZobs24LCp0KhQzHNM6nlc0hG0cdDUyqX0LhRSdyycMuDg8cVCML0HNLGxAwelKQM8URlbQKkb6gy7xxxTDEV7VMoIHNBzTVSxMqKav1K+KKl4oqvaoy9gzCmi2j7pB9arTa7p9gPJvrhYpOv3WJP5CtYgM3zdKqXdrDKpjlijkQ/wuuRXnKok9T1XC60KA1fSbzDW97EW9G+Qn88Vc/tC0tQv2i6iTJ4BbOax7vwrp8/zW4a2c/3TlfyP9K5670TUNPG6aEtGP44+VH19PxrZTjLZmXs2t0em09TxmuAstf1WAAfaTIo7SKG/XrVi41K+1FgsrnDHAjQYH5d6lytuUqbOqudbsbckGXzW7iPn9elFhrdvf3At44ZgxBOSBgfXms2w8Mu2HvpNg/uLyfxNdDa2cFomy3iWMd8dT9TS5waSJgvpS4xQBinUc5FhM+lHWlxSYqlIloTaKKdj2oo5gMgHBzXOa/rs0EEiQWt/BIp+WdoAUP4muhBpSFdSjgMrDBBHBFc8ZK92jfU4mx8YXONlxbpO/RSnykn6c1ZeDxDrbDzIHih7K37tR+B5P61vQ6Dp0WqR38MIikjXARAFTPTOPWtpTmqlOK1SBNnITeGpbPT5bme5QugB2KDjqO//ANarvhnT5jcx3TQAw84Zj39QK6R4o5kMUy7kbqD3qeNVRAqKFUDAAGAKlS5huTSsSYFKBQKeBVJXMWxu2jbUm2jbVcpNyPFLTsUhpgJRRiigdjn1JIxin5xUaDGMVJ3NcEajud0oJDlYVLHJ2/WoVqRapyuZ2sW0YGp1Oaqx1YjqoszkWFqUCokqZa6oHPIXFBFLRW3KQRkU0ipDTDUuJaGUUUVnYo//2Q==',
+        # s = '/9j/4AAQSkZJRgABAQEBLAEsAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABLAGQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDaSPHWpVIXrzTRijFd7Z8+oWJ1cdl/OniQ+uPpVdTUygnpUNmsVcfml3GmfMP4TxSDJ6Url8jJlfHenh81CqnvVlI/WpbNIxYqgtUyoF60zO3gClBYjIIpXLUSXfSb6iyR1pM0h3ZN5lFRUUCuzEVvWn5psILDkDNSiMg8g03ViZrDT7DVzUqMVOaarITjcM1OqZqHVTNoYeSZJA43fNzmpzDGRno3aoEUA4NWFAx3rGU0nc7YQbjZobs24LCp0KhQzHNM6nlc0hG0cdDUyqX0LhRSdyycMuDg8cVCML0HNLGxAwelKQM8URlbQKkb6gy7xxxTDEV7VMoIHNBzTVSxMqKav1K+KKl4oqvaoy9gzCmi2j7pB9arTa7p9gPJvrhYpOv3WJP5CtYgM3zdKqXdrDKpjlijkQ/wuuRXnKok9T1XC60KA1fSbzDW97EW9G+Qn88Vc/tC0tQv2i6iTJ4BbOax7vwrp8/zW4a2c/3TlfyP9K5670TUNPG6aEtGP44+VH19PxrZTjLZmXs2t0em09TxmuAstf1WAAfaTIo7SKG/XrVi41K+1FgsrnDHAjQYH5d6lytuUqbOqudbsbckGXzW7iPn9elFhrdvf3At44ZgxBOSBgfXms2w8Mu2HvpNg/uLyfxNdDa2cFomy3iWMd8dT9TS5waSJgvpS4xQBinUc5FhM+lHWlxSYqlIloTaKKdj2oo5gMgHBzXOa/rs0EEiQWt/BIp+WdoAUP4muhBpSFdSjgMrDBBHBFc8ZK92jfU4mx8YXONlxbpO/RSnykn6c1ZeDxDrbDzIHih7K37tR+B5P61vQ6Dp0WqR38MIikjXARAFTPTOPWtpTmqlOK1SBNnITeGpbPT5bme5QugB2KDjqO//ANarvhnT5jcx3TQAw84Zj39QK6R4o5kMUy7kbqD3qeNVRAqKFUDAAGAKlS5huTSsSYFKBQKeBVJXMWxu2jbUm2jbVcpNyPFLTsUhpgJRRiigdjn1JIxin5xUaDGMVJ3NcEajud0oJDlYVLHJ2/WoVqRapyuZ2sW0YGp1Oaqx1YjqoszkWFqUCokqZa6oHPIXFBFLRW3KQRkU0ipDTDUuJaGUUUVnYo//2Q==',
 
         product_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
@@ -318,13 +320,12 @@ class ImportToOdd:
                 # 'description_sale': 'super_puper_long',
                 'website_description': item['description'],
                 'website_published': True,
-                # 'image': item['images'],    # TODO, need fix !!!!
-                'image': str(s),    # TODO, need fix !!!!
+                'image': s,  # main image
                 'attribute_line_ids': attrs_lines,
             }]
         )
 
-        out('Created: [id: %i] [%s] ' % (product_id, sname,))
+        _ = 1
 
     def set_attributes_for_item(self, id_item, attributes_list):
         id_item = 42
@@ -850,8 +851,9 @@ class Impxls(object):
         return tmp_list
 
     def stage10(self, ImportToOddObject, data):
+        counter = 0
         for e in data:
-
+            counter += 1
             # process images
             images = e['images']
             images64 = []
@@ -861,6 +863,7 @@ class Impxls(object):
 
             e['images'] = images64
             ImportToOddObject.create_item(e)
+            out('[%i/%i]: [id: %i] [%s] ' % (counter, len(data), e['index'], e['sname']))
             # pass
 
 # c = Impxls()
