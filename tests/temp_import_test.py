@@ -342,19 +342,15 @@ class ImportToOdd:
                              ]
                 product_image_ids.append(add_image)
 
-        # get list of variant values id
-        variants_lines2 = [x[2]['value_ids'][0] for x in variants_lines]
-
-        l2 = []
+        # add variants attributes to attrr_lines
         if len(variants_lines) > 0:
-            l2 = variants_lines[0]
+            l2 = variants_lines[0]  # initial line
+            tmp_list = [x[2]['value_ids'][0] for x in variants_lines]
 
-            for variant in variants_lines2:
-                _ = 1
+            for variant in tmp_list:
                 l2[2]['value_ids'].append(variant)
 
-        # full_attr_lines = attrs_lines + variants_lines
-        attrs_lines.append(l2)
+            attrs_lines.append(l2)
 
         product_template_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
@@ -396,6 +392,10 @@ class ImportToOdd:
 
             }]
         )
+
+        # assign price for variant
+        # http://joxi.ru/RmzQMg9T0PYNMr
+        self.set_price_for_variants()
 
         return product_template_id
 
