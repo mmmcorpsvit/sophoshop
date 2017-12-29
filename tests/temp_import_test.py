@@ -216,10 +216,8 @@ class ImportToOdd:
 
         pass
 
-    def create_attribute(self, attrs_lines, sname, svalue):
-        # search attribute
-        # svalue = 'test2'
-        # region 'scroll'
+    def create_attribute(self, item, attrs_lines, sname, svalue, price=None):
+        # region 'attribute_id'
         attribute_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.attribute',  # model (just see param model in admin side URL)
@@ -245,7 +243,8 @@ class ImportToOdd:
         else:
             attribute_id = attribute_id[0]['id']
         # endregion
-        # search attribute value
+
+        # region 'attribute value'
         value_attribute_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.attribute.value',  # model (just see param model in admin side URL)
@@ -281,6 +280,7 @@ class ImportToOdd:
               'value_ids': [(4, value_attribute_id), ]},  # [(unknown ???, value_ids)]
              ),
         ]
+        # endregion
 
         return attribute_id, value_attribute_id
 
@@ -304,27 +304,22 @@ class ImportToOdd:
         attrs_lines = []
         try:
             for ekey, evalue in item['attributes'].items():
-                self.create_attribute(attrs_lines, ekey, evalue)
+                self.create_attribute(item, attrs_lines, ekey, evalue) # TODO: ON!!!!
+                pass
         except KeyError:
             # pass
             print('item: %s, dont have attributes!' % sname)
 
-        # ********************
-        """
-        attrs_lines += [
-            (0, 0,   # what it is?
-             {'attribute_id': 3,  # attribute id
-              'value_ids': [(4, 5), ]},  # [(unknown ???, value_ids)]
-             ),
-
-            (0, 0,  # what it is?
-             {'attribute_id': 1,  # attribute id
-              'value_ids': [(4, 2), ]},  # [(unknown ???, value_ids)]
-             ),
-
-            ]
-        """
-        # ********************
+        # add variants
+        variants_lines = []
+        try:
+            for variant_name,  variant_price in item['variant'].items():
+                out('    [%s] = %i' % (variant_name, variant_price))
+                self.create_attribute(item, variants_lines, 'Розмір', variant_name, variant_price)
+                # self.create_attribute(item, variants_lines, 'Розмір', variant_name, variant_price)
+        except KeyError:
+            # pass
+            print('item: %s, dont have variants!' % sname)
 
         images_array = item['images']
 
@@ -347,12 +342,25 @@ class ImportToOdd:
                              ]
                 product_image_ids.append(add_image)
 
+        # get list of variant values id
+        variants_lines2 = [x[2]['value_ids'][0] for x in variants_lines]
+
+        l2 = []
+        if len(variants_lines) > 0:
+            l2 = variants_lines[0]
+
+            for variant in variants_lines2:
+                _ = 1
+                l2[2]['value_ids'].append(variant)
+
+        # full_attr_lines = attrs_lines + variants_lines
+        attrs_lines.append(l2)
 
         product_template_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.template', 'create',
             [{
-                'name': sname + ' - 36',
+                'name': sname + ' - 42',
                 'list_price': item['price'],
                 'company_id': 1,
                 'categ_id': 6,  # All / Можна продавати / Physical
@@ -373,12 +381,13 @@ class ImportToOdd:
                 ],
                 # 'description_sale': 'super_puper_long',
 
+
                 'website_style_ids': [[
                     6,
                     False,
                     [
-                        1,
-                        2
+                        # 1,
+                        # 2
                     ]
                 ]],
 
@@ -388,36 +397,7 @@ class ImportToOdd:
             }]
         )
 
-        # add variants
-        # for variantt in item['variants']:
-        #    crete_variant(sname)
-
-        # add extra images
-        # if len(item['images']) > 1:
-        #     product_image_ids = []
-        #     counter = 0
-        #     for image in item['images']:
-        #         counter += 1
-        #         if counter == 1:
-        #             continue
-        #
-        #         product_image_ids.append({
-        #             'image': image,
-        #             'name': sname,
-        #             'product_tmpl_id': product_template_id,
-        #         })
-        #
-        #     res = self._models_objects.execute_kw(
-        #         self._db, self._uid, self._password,
-        #         'product.template', 'write',
-        #         product_template_id,
-        #
-        #         [{
-        #             'product_image_ids': product_image_ids
-        #         }]
-        #     )
-
-        _ = 1
+        return product_template_id
 
     def set_attributes_for_item(self, id_item, attributes_list):
         id_item = 42
@@ -550,7 +530,7 @@ class Impxls(object):
             if index == 1:
                 continue
 
-            if index < 2791:
+            if index < 2738:
                 continue
 
             # if index > 50:
@@ -1008,8 +988,8 @@ class Impxls(object):
                     images64.append(get_base('%s/%s' % (self._images_folder, image)))
 
             e['images'] = images64
-            ImportToOddObject.create_item(e)
             out('[%i/%i]: [id: %i] [%s] ' % (counter, len(data), e['index'], e['sname']))
+            ImportToOddObject.create_item(e)
             # pass
 
 
