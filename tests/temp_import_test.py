@@ -9,8 +9,13 @@ import copy
 import os
 import urllib3
 import shutil
+import logging
+import subprocess
+import urllib
 
 import pickle
+
+
 # to read
 # https://github.com/osiell/odoorpc
 # http://www.odoo.com/documentation/10.0/api_integration.html
@@ -28,10 +33,28 @@ import pickle
 def cls():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+
 #
 # def base64_of_file(fn):
 #     with open(fn, "rb") as image_file:
 #         return base64.b64encode(image_file.read())
+
+
+def run_win_cmd(cmd):
+    result = []
+    process = subprocess.Popen(cmd,
+                               shell=True,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    out(cmd)
+    for line in process.stdout:
+        result.append(line)
+    errcode = process.returncode
+    for line in result:
+        out(line)
+    if errcode is not None:
+        out(cmd)
+        raise Exception('cmd %s failed, see above for details', cmd)
 
 
 def get_base(file_name):
@@ -64,6 +87,7 @@ def get_image_base64_from_url(c, url):
 env = Env()
 out = print
 urllib3.disable_warnings()
+
 
 class ImportToOdd:
     _srv, _db, _username, _password = '', '', '', ''
@@ -252,7 +276,7 @@ class ImportToOdd:
             value_attribute_id = value_attribute_id[0]['id']
 
         attrs_lines += [
-            (0, 0,   # what it is?
+            (0, 0,  # what it is?
              {'attribute_id': attribute_id,  # attribute id
               'value_ids': [(4, value_attribute_id), ]},  # [(unknown ???, value_ids)]
              ),
@@ -302,28 +326,96 @@ class ImportToOdd:
         """
         # ********************
 
-        s = ''
-        if len(item['images']) > 0:
-            s = str(item['images'][0])
+        images_array = item['images']
 
-        # s = '/9j/4AAQSkZJRgABAQEBLAEsAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABLAGQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDaSPHWpVIXrzTRijFd7Z8+oWJ1cdl/OniQ+uPpVdTUygnpUNmsVcfml3GmfMP4TxSDJ6Url8jJlfHenh81CqnvVlI/WpbNIxYqgtUyoF60zO3gClBYjIIpXLUSXfSb6iyR1pM0h3ZN5lFRUUCuzEVvWn5psILDkDNSiMg8g03ViZrDT7DVzUqMVOaarITjcM1OqZqHVTNoYeSZJA43fNzmpzDGRno3aoEUA4NWFAx3rGU0nc7YQbjZobs24LCp0KhQzHNM6nlc0hG0cdDUyqX0LhRSdyycMuDg8cVCML0HNLGxAwelKQM8URlbQKkb6gy7xxxTDEV7VMoIHNBzTVSxMqKav1K+KKl4oqvaoy9gzCmi2j7pB9arTa7p9gPJvrhYpOv3WJP5CtYgM3zdKqXdrDKpjlijkQ/wuuRXnKok9T1XC60KA1fSbzDW97EW9G+Qn88Vc/tC0tQv2i6iTJ4BbOax7vwrp8/zW4a2c/3TlfyP9K5670TUNPG6aEtGP44+VH19PxrZTjLZmXs2t0em09TxmuAstf1WAAfaTIo7SKG/XrVi41K+1FgsrnDHAjQYH5d6lytuUqbOqudbsbckGXzW7iPn9elFhrdvf3At44ZgxBOSBgfXms2w8Mu2HvpNg/uLyfxNdDa2cFomy3iWMd8dT9TS5waSJgvpS4xQBinUc5FhM+lHWlxSYqlIloTaKKdj2oo5gMgHBzXOa/rs0EEiQWt/BIp+WdoAUP4muhBpSFdSjgMrDBBHBFc8ZK92jfU4mx8YXONlxbpO/RSnykn6c1ZeDxDrbDzIHih7K37tR+B5P61vQ6Dp0WqR38MIikjXARAFTPTOPWtpTmqlOK1SBNnITeGpbPT5bme5QugB2KDjqO//ANarvhnT5jcx3TQAw84Zj39QK6R4o5kMUy7kbqD3qeNVRAqKFUDAAGAKlS5huTSsSYFKBQKeBVJXMWxu2jbUm2jbVcpNyPFLTsUhpgJRRiigdjn1JIxin5xUaDGMVJ3NcEajud0oJDlYVLHJ2/WoVqRapyuZ2sW0YGp1Oaqx1YjqoszkWFqUCokqZa6oHPIXFBFLRW3KQRkU0ipDTDUuJaGUUUVnYo//2Q==',
+        # main image
+        image64 = str(images_array[0]) if len(images_array) > 0 else ''
 
-        product_id = self._models_objects.execute_kw(
+        # additional images
+        product_image_ids = []
+
+        if len(images_array) > 1:
+            for image in images_array[1:]:
+                add_image = [
+                    0,
+                    False,
+                    {
+                        'image': image,
+                        'name': sname,
+                        'product_tmpl_id': False,
+                    }
+                             ]
+                product_image_ids.append(add_image)
+
+
+        product_template_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
             'product.template', 'create',
             [{
-                'name': sname+' - 30',
-                'price': item['price'],
+                'name': sname + ' - 36',
+                'list_price': item['price'],
+                'company_id': 1,
                 'categ_id': 6,  # All / Можна продавати / Physical
+                'image_medium': image64,  # main image
+                'attribute_line_ids': attrs_lines,
+                'taxes_id': [],
+                'supplier_taxes_id': [],
+
+                'product_image_ids': product_image_ids,
+
                 # 'default_code': '1111',
-                'public_categ_ids': [[6, 0, [cat_id]]],
+                'public_categ_ids': [
+                    [
+                        6,
+                        False,
+                        [cat_id]
+                    ]
+                ],
                 # 'description_sale': 'super_puper_long',
+
+                'website_style_ids': [[
+                    6,
+                    False,
+                    [
+                        1,
+                        2
+                    ]
+                ]],
+
                 'website_description': item['description'],
                 'website_published': True,
-                'image': s,  # main image
-                'attribute_line_ids': attrs_lines,
+
             }]
         )
+
+        # add variants
+        # for variantt in item['variants']:
+        #    crete_variant(sname)
+
+        # add extra images
+        # if len(item['images']) > 1:
+        #     product_image_ids = []
+        #     counter = 0
+        #     for image in item['images']:
+        #         counter += 1
+        #         if counter == 1:
+        #             continue
+        #
+        #         product_image_ids.append({
+        #             'image': image,
+        #             'name': sname,
+        #             'product_tmpl_id': product_template_id,
+        #         })
+        #
+        #     res = self._models_objects.execute_kw(
+        #         self._db, self._uid, self._password,
+        #         'product.template', 'write',
+        #         product_template_id,
+        #
+        #         [{
+        #             'product_image_ids': product_image_ids
+        #         }]
+        #     )
 
         _ = 1
 
@@ -341,16 +433,16 @@ class ImportToOdd:
             'write',
             [65,
              {'attribute_line_ids': [
-                [
-                    0,
-                    False,
-                    {'attribute_id': 1,
-                     'value_ids': [
-                                6,
-                                False,
-                                [1]
-                            ]
-                     }
+                 [
+                     0,
+                     False,
+                     {'attribute_id': 1,
+                      'value_ids': [
+                          6,
+                          False,
+                          [1]
+                      ]
+                      }
                  ],
              ]}],
             # [],
@@ -389,6 +481,8 @@ CON_IGNORE_ATTRS = ['Гарантийный срок',
                     'Эффект "Зима - Лето"',
                     'Размер матраса, см',
                     ]
+
+
 # endregion
 
 
@@ -399,6 +493,21 @@ class Impxls(object):
     _csv1 = None
     _csv2 = None
     _url_lib_pool = urllib3.PoolManager()
+    _url_lib_pool.headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0',
+
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru,uk;q=0.8,en-US;q=0.5,en;q=0.3',
+        'Accept-Encoding': 'gzip, deflate, br',
+
+        'Referer': 'https://svitkomforty.com.ua/site_search?search_term=%D0%9A%D0%BE%D0%BC%D0%BE%D0%B4+%22%D0%9F%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D1%81%22+',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        # 'CACHE_CONTROL': 'max-age=0',
+
+        'Cookie': 'sc=FEA2DF85-1C9C-79BA-23A1-2BA3CBFF7804; __utma=260853711.1985520181.1504560363.1512576121.1512631692.55; __utmz=260853711.1509131608.12.4.utmcsr=my.prom.ua|utmccn=(referral)|utmcmd=referral|utmcct=/cabinet/; __utmv=260853711.%7C%7Ccompany_sites%7Cmember%3Aproduct_list%7C%7Cguest; companies_visited_products=595800165.632957361.632961901.632976305.632980474.490358817.611047191.525802594.538729821.597665232.597665231.597665234.597665233.497896756.492764707; _ga=GA1.3.c-JCj2vBu7CfeeMsASBuiWDYsL; scCart=201fd186-37f9-33bf-dd40-bdb2bb1f5c78; cid=265091909083095264351806441301063034936; __io=4613b9d06.d040bdc5e_1513686300626; __io_lv=1514455863795; __utmc=260853711; __io_source=; __io_atom=; holder=1; ccc=WkZJ3y7JZtcYTS5FUSYzh49pJHMM0n1jsv8opumD3OVGl5f41FSp1i3H142vu3DUuQys2MvEWUXVkvhoDZR90A==; _gid=GA1.3.183435408.1514452827; __io_visit_pageviews=1'
+    }
+
     _images_folder = '%s/images/' % os.getcwd()
 
     def __init__(self, flush=False, add_images=False, rebuild_index=False):
@@ -441,20 +550,21 @@ class Impxls(object):
             if index == 1:
                 continue
 
-            # if index < 62:
-            #    continue
+            if index < 2791:
+                continue
 
             # if index > 50:
             #     break
 
-            item['index'] = index-1
+            item['index'] = index - 1
             item['group_id'] = str(row[28].value).strip()
+            item['unique_id'] = str(row[20].value).strip()
 
             images = str(row[11].value).split(',')
             item['images'] = []
             for e in images:
                 # e = e.strip()
-                item['images'].append(e.replace(IMAGES_DOMAINE, '').strip())
+                item['images'].append(e.replace(IMAGES_DOMAINE, '').replace('_w640_h640_', '_w5000_h5000_').strip())
 
                 # fdata = get_image_base64_from_url(self._url_lib_pool, e)
                 # item['images'].append(fdata)
@@ -471,7 +581,7 @@ class Impxls(object):
                 if item['sname'].startswith(e):
                     item['sname'] = ''
             if item['sname'] == '':  # hack
-                    continue
+                continue
 
             out('[%i/%i] %s' % (index, total_count, item['sname']))
 
@@ -548,8 +658,8 @@ class Impxls(object):
                             str(val.value).strip(),
                             str(some_list[idx + 1].value).strip(),
                             str(some_list[idx + 2].value).strip()
-                            .replace('.0', '')
-                            .replace('*', 'x')
+                                .replace('.0', '')
+                                .replace('*', 'x')
                             ]
                            for idx, val in enumerate(some_list)
                            if idx % 3 == 0
@@ -628,8 +738,8 @@ class Impxls(object):
                         'Tik-Tak', 'взаимозаменяемый', 'левый',
                         'одноярусная кровать'
                         # '101', '102', '103', '104', '105', '106', '107', '108',
-                         ]:
-                        error_attrbitutes_values[e[0] + ', ' + e[1]+'='+e[3]] = ''
+                    ]:
+                        error_attrbitutes_values[e[0] + ', ' + e[1] + '=' + e[3]] = ''
                         out('      ******     Error attribute value: %s      *********' % e[3])
 
                     # translate
@@ -725,7 +835,7 @@ class Impxls(object):
                 except KeyError:
                     key_error = True
 
-        l3 = l1+l2
+        l3 = l1 + l2
         if key_error or (el['cat'] not in l3):
             # get minimum price from variants
             key_min = min(el_extra.keys(), key=(lambda k: el_extra[k]))
@@ -734,6 +844,12 @@ class Impxls(object):
             el['price'] = min_price
 
             out('*** dont have 160x200 *** [%s] [base_price=%i] %s' % (el['sname'], min_price, el_extra))
+
+        # fix price, from total price to base + extra ptice
+        for e3 in el_extra:
+            price_base = el['price']
+            price_variant = el_extra[e3]
+            el_extra[e3] = price_variant - price_base
 
         el['variant'] = el_extra
 
@@ -757,7 +873,7 @@ class Impxls(object):
             if group_id:
                 # v = ''
                 try:
-                    v = tmp_list_1[group_id]    # do not Delete!!! (need for try test!)
+                    v = tmp_list_1[group_id]  # do not Delete!!! (need for try test!)
                     len_sname = len(e['sname'])
                     # tmp_list_1[group_id] = tmp_list_1[group_id] + counter  # new group_id, append!
 
@@ -785,7 +901,6 @@ class Impxls(object):
             group_id = e['group_id']
             sname_len = len(e['sname'])
             if group_id and (sname_len > len(tmp_list_3[group_id]['sname'])):
-
                 # add variant
                 e2 = tmp_list_3[group_id]
 
@@ -795,6 +910,7 @@ class Impxls(object):
                 # dict(variant, price)
                 e2['variant'][s] = e['price']
 
+                _ = 1
                 # prom.ua create separate image of variants for same item 0_o.... world - stop!, i live this planete...
                 """
                 for image in e['images']:
@@ -832,6 +948,19 @@ class Impxls(object):
         for e in tmp_list:
             counter += 1
 
+            # parse page for images (real and big!!!, not resized!)
+            # url = 'https://svitkomforty.com.ua/p%s-prodam-garaj.html' % e['unique_id']
+            # url = 'https://svitkomforty.com.ua/p595800165-prodam-garaj.html'
+            # url = 'https://svitkomforty.com.ua/p595800165-komod-provans.html'
+            # url = 'https://pgl.yoyo.org/http/browser-headers.php'
+            # html_data = ''
+            #
+            # with self._url_lib_pool.request('GET', url, preload_content=False) as resp:
+            #     html_data = resp.read()
+            #
+            #     with open('file.html', 'wb') as f:
+            #         f.write(html_data)
+
             for s in e['images']:
                 if len(s) < 2:
                     continue
@@ -843,10 +972,27 @@ class Impxls(object):
                     with self._url_lib_pool.request('GET', url, preload_content=False) as resp, \
                             open(fs, 'wb') as out_file:
                         shutil.copyfileobj(resp, out_file)
+
+                        # crop white spaces
+                        # nfn = os.path.splitext(fn)[0] + '.jpg'
+                        fn = '%s/%s' % ("C:\Dev\sophoshop\\tests\images\\", s)
+                        # cs = '"C:\Dev\sophoshop\_private\ImageMagic/convert.exe" "%s" -background white -flatten' % fn
+                        params = '-shave 1x1 -fuzz 5% -trim +repage'
+                        # params = '-morphology Dilate:3 Diamond:3,5 -fuzz 5% -trim'
+                        cs = '"C:\Dev\sophoshop\_private\ImageMagic\convert.exe" "%s" %s "%s"' % (fn, params, fn)
+
+                        cs = "'C:\Program Files\GIMP 2\\bin\gimp-2.8.exe' -i -b '(Autocrop %s)'" % ("%s" % fn)
+
+                        # out(cs)
+                        # res = run_win_cmd(cs)
+                        # out(res)
+
                         # result = base64.b64encode(resp.data)
 
                     resp.release_conn()  # not 100% sure this is required though
                     out('[%i/%i] download: %s' % (counter, len(tmp_list), url))
+
+        _ = 1
 
         return tmp_list
 
@@ -865,6 +1011,7 @@ class Impxls(object):
             ImportToOddObject.create_item(e)
             out('[%i/%i]: [id: %i] [%s] ' % (counter, len(data), e['index'], e['sname']))
             # pass
+
 
 # c = Impxls()
 # c.handle('export-products.xlsx')
@@ -935,9 +1082,7 @@ c.stage10(im, ready_data)
 
 _ = 1
 
-
 exit(0)
-
 
 out('\n==products==')
 i = 0
