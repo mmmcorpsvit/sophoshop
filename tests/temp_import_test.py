@@ -236,6 +236,14 @@ class ImportToOdd:
         pass
 
     def create_attribute(self, item, attrs_lines, sname, svalue, price=None):
+        if svalue == 'None':
+            if sname in ['Бренд']:
+                svalue = 'Україна'
+            if sname in ['Країна виробник']:
+                svalue = 'Україна'
+
+            # _ = 1
+
         # region 'attribute_id'
         attribute_id = self._models_objects.execute_kw(
             self._db, self._uid, self._password,
@@ -352,7 +360,8 @@ class ImportToOdd:
         try:
             for variant_name, variant_price in item['variant'].items():
                 out('    [%s] = %i' % (variant_name, variant_price))
-                self.create_attribute(item, variants_lines, cat_to_variants_site_name_value, variant_name, variant_price)
+                self.create_attribute(item, variants_lines, cat_to_variants_site_name_value, variant_name,
+                                      variant_price)
                 # self.create_attribute(item, variants_lines, 'Розмір', variant_name, variant_price)
         except KeyError:
             # pass
@@ -396,10 +405,10 @@ class ImportToOdd:
             self._db, self._uid, self._password,
             'product.template', 'create',
             [{
-                'name': sname + ' - 42',
+                'name': sname + ' - 43',
                 'list_price': item['price'],
                 'company_id': 1,
-                'sale_og': True,
+                'sale_ok': True,
                 'purchase_ok': False,
                 # 'categ_id': 6,  # All / Можна продавати / Physical  (odoo 10)
                 'categ_id': 1,  # All / Salable (odoo 11)
@@ -437,11 +446,8 @@ class ImportToOdd:
 
         # assign price for variant
         # http://joxi.ru/RmzQMg9T0PYNMr
-
         extra_price_list = []
-
         counter = 0
-
         try:
             for key, elem in item['variant'].items():
                 el = original_variant_list[counter][2]
@@ -458,14 +464,29 @@ class ImportToOdd:
 
     # (product_template_id, attrinute_id, value_id, extra_price)
     def set_price_for_variants(self, extra_price_list):
-        return None
+        # return None
 
         result = []
         for e in extra_price_list:
             r = self._models_objects.execute_kw(
                 self._db, self._uid, self._password,
                 'product.attribute.value', 'write',
-                [{}]
+
+                [[e[2]],
+                 {'price_extra': e[3]}
+                 ],
+
+                {
+                    'context': {
+                        'active_id': e[0],
+                        'active_ids':
+                            [e[0]],
+                        'default_product_tmpl_id': e[0],
+
+                    }
+
+                },
+
             )
             result.append(r)
 
@@ -1137,6 +1158,12 @@ with open('stage3.pickle', 'wb') as handle:
     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)    
 """
 
+l = [(1, 32, 32, -1999), (1, 32, 33, -1793), (1, 32, 34, -1637), (1, 32, 35, -959), (1, 32, 36, -512),
+     (1, 32, 37, -271), (1, 32, 38, -60), (1, 32, 39, 374), (1, 32, 40, -1757), (1, 32, 41, -1604), (1, 32, 42, -913),
+     (1, 32, 43, -456), (1, 32, 44, -212), (1, 32, 45, 0), (1, 32, 46, 484)]
+# im.set_price_for_variants(l)
+
+# exit(0)
 
 data_xls = c.handle('export-products.xlsx')
 data_variants2 = c.stage2(data_xls)
