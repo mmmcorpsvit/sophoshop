@@ -1153,7 +1153,7 @@ with open('stage2.pickle', 'wb') as handle:
     pickle.dump(data_variants2, handle, protocol=pickle.HIGHEST_PROTOCOL)
 with open('stage2.pickle', 'rb') as handle:  # stage 3, cat + brand = attributes + variants
     data = pickle.load(handle)
-    
+
 with open('stage3.pickle', 'wb') as handle:
     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)    
 """
