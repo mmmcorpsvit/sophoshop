@@ -12,6 +12,7 @@ import shutil
 import logging
 import subprocess
 import urllib
+from PIL import Image
 
 import pickle
 
@@ -81,6 +82,24 @@ def get_image_base64_from_url(c, url):
         result = base64.b64encode(resp.data)
 
     resp.release_conn()  # not 100% sure this is required though
+    return result
+
+
+def check_image_correct(fn):
+    # test open
+    result = False
+    try:
+        img = Image.open(fn)
+        # img.load()
+        # im.close()
+        # do stuff
+        format = img.format
+        result = True
+    except IOError:
+        # filename not an image file
+        s = ''
+        # out('***Error: image open fail: %s, %s ***' % (url, fs))
+
     return result
 
 
@@ -269,6 +288,7 @@ class ImportToOdd:
                     'attribute_id': attribute_id,
                     'name': svalue,
                     # 'html_color': False,
+                    'type': 'select',
                 }]
             )
         else:
@@ -304,7 +324,7 @@ class ImportToOdd:
         attrs_lines = []
         try:
             for ekey, evalue in item['attributes'].items():
-                self.create_attribute(item, attrs_lines, ekey, evalue) # TODO: ON!!!!
+                self.create_attribute(item, attrs_lines, ekey, evalue)
                 pass
         except KeyError:
             # pass
@@ -312,14 +332,31 @@ class ImportToOdd:
 
         # add variants
         variants_lines = []
+
+        # kind of variant
+        cat_to_variants_site_name_value = 'Розмір'
+        cat_to_variants_site_name = {
+            'Дивани': 'Кут',
+            'Ліжка': 'Розмір спального місця',
+            'Стільці та табурети': 'Колір',
+            'Столи гостьові': 'Колір',
+            'Столи журнальні': 'Колір',
+            # '': '',
+        }
+
         try:
-            for variant_name,  variant_price in item['variant'].items():
+            cat_to_variants_site_name_value = cat_to_variants_site_name[item['cat']]
+        except KeyError:
+            pass
+
+        try:
+            for variant_name, variant_price in item['variant'].items():
                 out('    [%s] = %i' % (variant_name, variant_price))
-                self.create_attribute(item, variants_lines, 'Розмір', variant_name, variant_price)
+                self.create_attribute(item, variants_lines, cat_to_variants_site_name_value, variant_name, variant_price)
                 # self.create_attribute(item, variants_lines, 'Розмір', variant_name, variant_price)
         except KeyError:
             # pass
-            print('item: %s, dont have variants!' % sname)
+            out('         dont have variants: [%s]' % sname)
 
         images_array = item['images']
 
@@ -339,11 +376,14 @@ class ImportToOdd:
                         'name': sname,
                         'product_tmpl_id': False,
                     }
-                             ]
+                ]
                 product_image_ids.append(add_image)
+
+        original_variant_list = copy.deepcopy(variants_lines)
 
         # add variants attributes to attrr_lines
         if len(variants_lines) > 0:
+            # l2 = []
             l2 = variants_lines[0]  # initial line
             tmp_list = [x[2]['value_ids'][0] for x in variants_lines]
 
@@ -359,7 +399,10 @@ class ImportToOdd:
                 'name': sname + ' - 42',
                 'list_price': item['price'],
                 'company_id': 1,
-                'categ_id': 6,  # All / Можна продавати / Physical
+                'sale_og': True,
+                'purchase_ok': False,
+                # 'categ_id': 6,  # All / Можна продавати / Physical  (odoo 10)
+                'categ_id': 1,  # All / Salable (odoo 11)
                 'image_medium': image64,  # main image
                 'attribute_line_ids': attrs_lines,
                 'taxes_id': [],
@@ -376,7 +419,6 @@ class ImportToOdd:
                     ]
                 ],
                 # 'description_sale': 'super_puper_long',
-
 
                 'website_style_ids': [[
                     6,
@@ -395,9 +437,39 @@ class ImportToOdd:
 
         # assign price for variant
         # http://joxi.ru/RmzQMg9T0PYNMr
-        self.set_price_for_variants()
+
+        extra_price_list = []
+
+        counter = 0
+
+        try:
+            for key, elem in item['variant'].items():
+                el = original_variant_list[counter][2]
+
+                v = (product_template_id, el['attribute_id'], el['value_ids'][0][1], elem)
+                extra_price_list.append(v)
+                counter += 1
+
+            self.set_price_for_variants(extra_price_list)
+        except KeyError:
+            pass
 
         return product_template_id
+
+    # (product_template_id, attrinute_id, value_id, extra_price)
+    def set_price_for_variants(self, extra_price_list):
+        return None
+
+        result = []
+        for e in extra_price_list:
+            r = self._models_objects.execute_kw(
+                self._db, self._uid, self._password,
+                'product.attribute.value', 'write',
+                [{}]
+            )
+            result.append(r)
+
+        return result
 
     def set_attributes_for_item(self, id_item, attributes_list):
         id_item = 42
@@ -488,7 +560,7 @@ class Impxls(object):
         'Cookie': 'sc=FEA2DF85-1C9C-79BA-23A1-2BA3CBFF7804; __utma=260853711.1985520181.1504560363.1512576121.1512631692.55; __utmz=260853711.1509131608.12.4.utmcsr=my.prom.ua|utmccn=(referral)|utmcmd=referral|utmcct=/cabinet/; __utmv=260853711.%7C%7Ccompany_sites%7Cmember%3Aproduct_list%7C%7Cguest; companies_visited_products=595800165.632957361.632961901.632976305.632980474.490358817.611047191.525802594.538729821.597665232.597665231.597665234.597665233.497896756.492764707; _ga=GA1.3.c-JCj2vBu7CfeeMsASBuiWDYsL; scCart=201fd186-37f9-33bf-dd40-bdb2bb1f5c78; cid=265091909083095264351806441301063034936; __io=4613b9d06.d040bdc5e_1513686300626; __io_lv=1514455863795; __utmc=260853711; __io_source=; __io_atom=; holder=1; ccc=WkZJ3y7JZtcYTS5FUSYzh49pJHMM0n1jsv8opumD3OVGl5f41FSp1i3H142vu3DUuQys2MvEWUXVkvhoDZR90A==; _gid=GA1.3.183435408.1514452827; __io_visit_pageviews=1'
     }
 
-    _images_folder = '%s/images/' % os.getcwd()
+    _images_folder = '%s\images\\' % os.getcwd()
 
     def __init__(self, flush=False, add_images=False, rebuild_index=False):
         self._flush = flush
@@ -498,10 +570,9 @@ class Impxls(object):
         self._csv2 = open('attr2.csv', 'w')
 
     def handle(self, fn):
-        def translate(id_kind, text):
-            result = text
-            return result
-
+        # def translate(id_kind, text):
+        #     result = text
+        #     return result
         wb2 = load_workbook(fn, read_only=True)
         # print('Spread sheats names: %s' % wb2.get_sheet_names())
         wb = wb2.worksheets[0]
@@ -530,8 +601,8 @@ class Impxls(object):
             if index == 1:
                 continue
 
-            if index < 2738:
-                continue
+            # if index < 2738:
+            #     continue
 
             # if index > 50:
             #     break
@@ -941,37 +1012,49 @@ class Impxls(object):
             #     with open('file.html', 'wb') as f:
             #         f.write(html_data)
 
-            for s in e['images']:
-                if len(s) < 2:
+            if e['sname'] == 'Ліжко Далі Люкс':
+                _ = 1
+
+            new_images = []
+
+            for svalue in e['images']:
+                if len(svalue) < 2:
                     continue
 
-                fs = '%s%s' % (self._images_folder, s)
+                fs = '%s%s' % (self._images_folder, svalue)
                 if not os.path.isfile(fs):
-                    url = '%s%s' % (IMAGES_DOMAINE, s)
+                    url = '%s%s' % (IMAGES_DOMAINE, svalue)
 
                     with self._url_lib_pool.request('GET', url, preload_content=False) as resp, \
                             open(fs, 'wb') as out_file:
                         shutil.copyfileobj(resp, out_file)
 
-                        # crop white spaces
-                        # nfn = os.path.splitext(fn)[0] + '.jpg'
-                        fn = '%s/%s' % ("C:\Dev\sophoshop\\tests\images\\", s)
-                        # cs = '"C:\Dev\sophoshop\_private\ImageMagic/convert.exe" "%s" -background white -flatten' % fn
-                        params = '-shave 1x1 -fuzz 5% -trim +repage'
-                        # params = '-morphology Dilate:3 Diamond:3,5 -fuzz 5% -trim'
-                        cs = '"C:\Dev\sophoshop\_private\ImageMagic\convert.exe" "%s" %s "%s"' % (fn, params, fn)
-
-                        cs = "'C:\Program Files\GIMP 2\\bin\gimp-2.8.exe' -i -b '(Autocrop %s)'" % ("%s" % fn)
-
-                        # out(cs)
-                        # res = run_win_cmd(cs)
-                        # out(res)
-
-                        # result = base64.b64encode(resp.data)
-
                     resp.release_conn()  # not 100% sure this is required though
                     out('[%i/%i] download: %s' % (counter, len(tmp_list), url))
 
+                if not check_image_correct(fs):
+                    out('            ***Error: image open fail: %s, %s ***' % (e['sname'], fs))
+                    # e['images'][skey] = ''
+                else:
+                    new_images.append(svalue)
+
+                # crop white spaces
+                # nfn = os.path.splitext(fn)[0] + '.jpg'
+                # fn = '%s/%s' % ("C:\Dev\sophoshop\\tests\images\\", s)
+                # cs = '"C:\Dev\sophoshop\_private\ImageMagic/convert.exe" "%s" -background white -flatten' % fn
+                # params = '-shave 1x1 -fuzz 5% -trim +repage'
+                # params = '-morphology Dilate:3 Diamond:3,5 -fuzz 5% -trim'
+                # cs = '"C:\Dev\sophoshop\_private\ImageMagic\convert.exe" "%s" %s "%s"' % (fn, params, fn)
+
+                # cs = "'C:\Program Files\GIMP 2\\bin\gimp-2.8.exe' -i -b '(Autocrop %s)'" % ("%s" % fn)
+
+                # out(cs)
+                # res = run_win_cmd(cs)
+                # out(res)
+
+                # result = base64.b64encode(resp.data)
+
+            e['images'] = new_images
         _ = 1
 
         return tmp_list
@@ -1054,19 +1137,9 @@ with open('stage3.pickle', 'wb') as handle:
     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)    
 """
 
+
 data_xls = c.handle('export-products.xlsx')
 data_variants2 = c.stage2(data_xls)
 ready_data = c.stage3(data_variants2, data_xls)
 
 c.stage10(im, ready_data)
-
-_ = 1
-
-exit(0)
-
-out('\n==products==')
-i = 0
-for e in list_2:
-    i += 1
-    out('[%i/%i] [%s]' % (i, len(list_2), e['name'],))
-    im.create_item(e)
