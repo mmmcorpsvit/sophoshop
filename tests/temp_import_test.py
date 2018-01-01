@@ -9,103 +9,66 @@ import copy
 import os
 import urllib3
 import shutil
-import logging
 import subprocess
-import urllib
 from PIL import Image
 
-import pickle
-
-
-# to read
-# https://github.com/osiell/odoorpc
-# http://www.odoo.com/documentation/10.0/api_integration.html
-
-# import datetime
-# import os
-# from os import rename
-# import tarfile
-# import zipfile
-# import zlib
-# import shutil
-# import tempfile
-
-
-def cls():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-
-#
-# def base64_of_file(fn):
-#     with open(fn, "rb") as image_file:
-#         return base64.b64encode(image_file.read())
-
-
-def run_win_cmd(cmd):
-    result = []
-    process = subprocess.Popen(cmd,
-                               shell=True,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
-    out(cmd)
-    for line in process.stdout:
-        result.append(line)
-    errcode = process.returncode
-    for line in result:
-        out(line)
-    if errcode is not None:
-        out(cmd)
-        raise Exception('cmd %s failed, see above for details', cmd)
-
-
-def get_base(file_name):
-    result = ''
-    with open(file_name, 'rb') as resp:
-        file_data = resp.read()
-        # result = str(base64.b64encode(file_data))
-        result = base64.encodebytes(file_data).decode("utf-8")
-    return result
-
-
-def get_image_base64_from_url(c, url):
-    """
-    Download file
-    :param c: c = urllib3.PoolManager()
-    :param url: URL
-    # :return: data of file
-    """
-
-    # logger.error(url)
-    # logger.error(filename)
-
-    with c.request('GET', url, preload_content=False) as resp:
-        result = base64.b64encode(resp.data)
-
-    resp.release_conn()  # not 100% sure this is required though
-    return result
-
-
-def check_image_correct(fn):
-    # test open
-    result = False
-    try:
-        img = Image.open(fn)
-        # img.load()
-        # im.close()
-        # do stuff
-        format = img.format
-        result = True
-    except IOError:
-        # filename not an image file
-        s = ''
-        # out('***Error: image open fail: %s, %s ***' % (url, fs))
-
-    return result
+# import pickle
 
 
 env = Env()
 out = print
 urllib3.disable_warnings()
+
+
+class Utils:
+    @staticmethod
+    def cls():
+        os.system('cls' if os.name == 'nt' else 'clear')
+
+    @staticmethod
+    def run_win_cmd(cmd_line):
+        result = []
+        process = subprocess.Popen(cmd_line,
+                                   shell=True,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        out(cmd_line)
+        for line in process.stdout:
+            result.append(line)
+        errcode = process.returncode
+        for line in result:
+            out(line)
+        if errcode is not None:
+            out(cmd_line)
+            raise Exception('cmd %s failed, see above for details', cmd_line)
+
+    @staticmethod
+    def get_base(file_name):
+        result = ''
+        with open(file_name, 'rb') as resp:
+            file_data = resp.read()
+            result = base64.encodebytes(file_data).decode("utf-8")
+        return result
+
+    @staticmethod
+    def get_image_base64_from_url(urlobject, url):
+        with urlobject.request('GET', url, preload_content=False) as resp:
+            result = base64.b64encode(resp.data)
+        resp.release_conn()  # not 100% sure this is required though
+        return result
+
+    @staticmethod
+    def check_image_correct(fn):
+        # test open
+        result = False
+        try:
+            img = Image.open(fn)
+            format_str = img.format  # NOQA
+            result = True
+        except IOError:
+            s = ''
+            # out('***Error: image open fail: %s, %s ***' % (url, fs))
+        return result
 
 
 class ImportToOdd:
@@ -124,14 +87,14 @@ class ImportToOdd:
         self._cats.clear()
         rpc = '%s/xmlrpc/2/' % self._srv
 
-        self._common_objects = xmlrpclib.ServerProxy('%scommon' % rpc)
-        cv = self._common_objects.version()
-        out('\n==server info==')
-        out(cv)
-
         try:
+            self._common_objects = xmlrpclib.ServerProxy('%scommon' % rpc)
+            cv = self._common_objects.version()
+            out('\n==server info==')
+            out(cv)
+
             self._uid = self._common_objects.authenticate(self._db, self._username, self._password, {})
-        except:
+        except ConnectionRefusedError:
             pass
 
         if not self._uid:
@@ -405,7 +368,7 @@ class ImportToOdd:
             self._db, self._uid, self._password,
             'product.template', 'create',
             [{
-                'name': sname + ' - 43',
+                'name': sname + ' - 44',
                 'list_price': item['price'],
                 'company_id': 1,
                 'sale_ok': True,
@@ -565,6 +528,7 @@ class Impxls(object):
     _rebuild_index = False
     _csv1 = None
     _csv2 = None
+    _images_folder = '%s\images\\' % os.getcwd()
     _url_lib_pool = urllib3.PoolManager()
     _url_lib_pool.headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:57.0) Gecko/20100101 Firefox/57.0',
@@ -573,15 +537,10 @@ class Impxls(object):
         'Accept-Language': 'ru,uk;q=0.8,en-US;q=0.5,en;q=0.3',
         'Accept-Encoding': 'gzip, deflate, br',
 
-        'Referer': 'https://svitkomforty.com.ua/site_search?search_term=%D0%9A%D0%BE%D0%BC%D0%BE%D0%B4+%22%D0%9F%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D1%81%22+',
+        'Referer': 'https://svitkomforty.com.ua/site_search?search_term=%D0%9A%D0%BE%BD%D1%81%22+',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
-        # 'CACHE_CONTROL': 'max-age=0',
-
-        'Cookie': 'sc=FEA2DF85-1C9C-79BA-23A1-2BA3CBFF7804; __utma=260853711.1985520181.1504560363.1512576121.1512631692.55; __utmz=260853711.1509131608.12.4.utmcsr=my.prom.ua|utmccn=(referral)|utmcmd=referral|utmcct=/cabinet/; __utmv=260853711.%7C%7Ccompany_sites%7Cmember%3Aproduct_list%7C%7Cguest; companies_visited_products=595800165.632957361.632961901.632976305.632980474.490358817.611047191.525802594.538729821.597665232.597665231.597665234.597665233.497896756.492764707; _ga=GA1.3.c-JCj2vBu7CfeeMsASBuiWDYsL; scCart=201fd186-37f9-33bf-dd40-bdb2bb1f5c78; cid=265091909083095264351806441301063034936; __io=4613b9d06.d040bdc5e_1513686300626; __io_lv=1514455863795; __utmc=260853711; __io_source=; __io_atom=; holder=1; ccc=WkZJ3y7JZtcYTS5FUSYzh49pJHMM0n1jsv8opumD3OVGl5f41FSp1i3H142vu3DUuQys2MvEWUXVkvhoDZR90A==; _gid=GA1.3.183435408.1514452827; __io_visit_pageviews=1'
     }
-
-    _images_folder = '%s\images\\' % os.getcwd()
 
     def __init__(self, flush=False, add_images=False, rebuild_index=False):
         self._flush = flush
@@ -730,8 +689,8 @@ class Impxls(object):
                             str(val.value).strip(),
                             str(some_list[idx + 1].value).strip(),
                             str(some_list[idx + 2].value).strip()
-                                .replace('.0', '')
-                                .replace('*', 'x')
+                            .replace('.0', '')
+                            .replace('*', 'x')
                             ]
                            for idx, val in enumerate(some_list)
                            if idx % 3 == 0
@@ -1053,34 +1012,19 @@ class Impxls(object):
                     resp.release_conn()  # not 100% sure this is required though
                     out('[%i/%i] download: %s' % (counter, len(tmp_list), url))
 
-                if not check_image_correct(fs):
+                if not Utils.check_image_correct(fs):
                     out('            ***Error: image open fail: %s, %s ***' % (e['sname'], fs))
                     # e['images'][skey] = ''
                 else:
                     new_images.append(svalue)
-
-                # crop white spaces
-                # nfn = os.path.splitext(fn)[0] + '.jpg'
-                # fn = '%s/%s' % ("C:\Dev\sophoshop\\tests\images\\", s)
-                # cs = '"C:\Dev\sophoshop\_private\ImageMagic/convert.exe" "%s" -background white -flatten' % fn
-                # params = '-shave 1x1 -fuzz 5% -trim +repage'
-                # params = '-morphology Dilate:3 Diamond:3,5 -fuzz 5% -trim'
-                # cs = '"C:\Dev\sophoshop\_private\ImageMagic\convert.exe" "%s" %s "%s"' % (fn, params, fn)
-
-                # cs = "'C:\Program Files\GIMP 2\\bin\gimp-2.8.exe' -i -b '(Autocrop %s)'" % ("%s" % fn)
-
-                # out(cs)
-                # res = run_win_cmd(cs)
-                # out(res)
-
-                # result = base64.b64encode(resp.data)
+                # TODO: crop white spaces
 
             e['images'] = new_images
         _ = 1
 
         return tmp_list
 
-    def stage10(self, ImportToOddObject, data):
+    def stage10(self, import_object, data):
         counter = 0
         for e in data:
             counter += 1
@@ -1089,11 +1033,11 @@ class Impxls(object):
             images64 = []
             for image in images:
                 if len(image) > 0:
-                    images64.append(get_base('%s/%s' % (self._images_folder, image)))
+                    images64.append(Utils.get_base('%s/%s' % (self._images_folder, image)))
 
             e['images'] = images64
             out('[%i/%i]: [id: %i] [%s] ' % (counter, len(data), e['index'], e['sname']))
-            ImportToOddObject.create_item(e)
+            import_object.create_item(e)
             # pass
 
 
@@ -1101,30 +1045,6 @@ class Impxls(object):
 # c.handle('export-products.xlsx')
 
 # test
-list_2 = [
-    {'name': 'бозен',
-     'price': 99,
-     'cat_name': 'диван',
-     'desc': 'super duper divan',
-     'image': '/9j/4AAQSkZJRgABAQEBLAEsAAD/2wBDAA0JCgsKCA0LCgsODg0PEyAVExISEyccHhcgLikxMC4pLSwzOko+MzZGNywtQFdBRkxOUlNSMj5aYVpQYEpRUk//2wBDAQ4ODhMREyYVFSZPNS01T09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT0//wAARCABLAGQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDaSPHWpVIXrzTRijFd7Z8+oWJ1cdl/OniQ+uPpVdTUygnpUNmsVcfml3GmfMP4TxSDJ6Url8jJlfHenh81CqnvVlI/WpbNIxYqgtUyoF60zO3gClBYjIIpXLUSXfSb6iyR1pM0h3ZN5lFRUUCuzEVvWn5psILDkDNSiMg8g03ViZrDT7DVzUqMVOaarITjcM1OqZqHVTNoYeSZJA43fNzmpzDGRno3aoEUA4NWFAx3rGU0nc7YQbjZobs24LCp0KhQzHNM6nlc0hG0cdDUyqX0LhRSdyycMuDg8cVCML0HNLGxAwelKQM8URlbQKkb6gy7xxxTDEV7VMoIHNBzTVSxMqKav1K+KKl4oqvaoy9gzCmi2j7pB9arTa7p9gPJvrhYpOv3WJP5CtYgM3zdKqXdrDKpjlijkQ/wuuRXnKok9T1XC60KA1fSbzDW97EW9G+Qn88Vc/tC0tQv2i6iTJ4BbOax7vwrp8/zW4a2c/3TlfyP9K5670TUNPG6aEtGP44+VH19PxrZTjLZmXs2t0em09TxmuAstf1WAAfaTIo7SKG/XrVi41K+1FgsrnDHAjQYH5d6lytuUqbOqudbsbckGXzW7iPn9elFhrdvf3At44ZgxBOSBgfXms2w8Mu2HvpNg/uLyfxNdDa2cFomy3iWMd8dT9TS5waSJgvpS4xQBinUc5FhM+lHWlxSYqlIloTaKKdj2oo5gMgHBzXOa/rs0EEiQWt/BIp+WdoAUP4muhBpSFdSjgMrDBBHBFc8ZK92jfU4mx8YXONlxbpO/RSnykn6c1ZeDxDrbDzIHih7K37tR+B5P61vQ6Dp0WqR38MIikjXARAFTPTOPWtpTmqlOK1SBNnITeGpbPT5bme5QugB2KDjqO//ANarvhnT5jcx3TQAw84Zj39QK6R4o5kMUy7kbqD3qeNVRAqKFUDAAGAKlS5huTSsSYFKBQKeBVJXMWxu2jbUm2jbVcpNyPFLTsUhpgJRRiigdjn1JIxin5xUaDGMVJ3NcEajud0oJDlYVLHJ2/WoVqRapyuZ2sW0YGp1Oaqx1YjqoszkWFqUCokqZa6oHPIXFBFLRW3KQRkU0ipDTDUuJaGUUUVnYo//2Q==',
-
-     'attributes': {
-         'цвет': 'красный',
-         'форма': 'квадрат',
-         'материал': 'бук',
-     }
-     },
-
-    {'name': 'техас',
-     'price': 66,
-     'cat_name': 'диван',
-     'desc': 'super duper divan2',
-     # 'cat_name': 'диван',
-     'image': '',
-     },
-
-]
-
 im = ImportToOdd(env('host'), env('db'), env('user'), env('pwd'))
 # im.connect()
 
@@ -1157,11 +1077,6 @@ with open('stage2.pickle', 'rb') as handle:  # stage 3, cat + brand = attributes
 with open('stage3.pickle', 'wb') as handle:
     pickle.dump(data, handle, protocol=pickle.HIGHEST_PROTOCOL)    
 """
-
-l = [(1, 32, 32, -1999), (1, 32, 33, -1793), (1, 32, 34, -1637), (1, 32, 35, -959), (1, 32, 36, -512),
-     (1, 32, 37, -271), (1, 32, 38, -60), (1, 32, 39, 374), (1, 32, 40, -1757), (1, 32, 41, -1604), (1, 32, 42, -913),
-     (1, 32, 43, -456), (1, 32, 44, -212), (1, 32, 45, 0), (1, 32, 46, 484)]
-# im.set_price_for_variants(l)
 
 # exit(0)
 
