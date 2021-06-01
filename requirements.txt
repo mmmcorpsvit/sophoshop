@@ -46,7 +46,7 @@ gunicorn
 
 
 # utils
-urllib3 == 1.22
+urllib3 == 1.26.5
 
 # search
 # Elasticsearch 6.x
